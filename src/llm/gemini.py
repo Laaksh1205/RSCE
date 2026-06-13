@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 from typing import Type, TypeVar
 from pydantic import BaseModel
 from google import genai
@@ -49,7 +50,8 @@ class GeminiProvider(LLMProvider):
                 )
                 return response.text or ""
             except Exception as e:
-                is_rate_limit = "429" in str(e) or "ResourceExhausted" in str(e)
+                err_str = str(e)
+                is_rate_limit = "429" in err_str or "resource_exhausted" in err_str.lower() or "resourceexhausted" in err_str.lower()
                 if attempt == max_attempts - 1:
                     logger.error(f"Gemini generate_text failed after {max_attempts} attempts: {e}")
                     raise
@@ -58,10 +60,12 @@ class GeminiProvider(LLMProvider):
                     self._rotate_key()
                     consecutive_rate_limits += 1
                     if consecutive_rate_limits >= len(self._clients):
-                        backoff = (2 ** (consecutive_rate_limits - len(self._clients))) * 2
+                        delay_match = re.search(r"Please retry in (\d+(?:\.\d+)?)s", err_str)
+                        backoff = float(delay_match.group(1)) + 0.5 if delay_match else (2 ** (consecutive_rate_limits - len(self._clients))) * 2
+                        backoff = max(backoff, 5.0)
                         logger.warning(
                             f"Gemini generate_text hit rate limit on all keys. "
-                            f"Retrying in {backoff}s... Error: {e}"
+                            f"Retrying in {backoff:.2f}s... Error: {e}"
                         )
                         await asyncio.sleep(backoff)
                     else:
@@ -102,7 +106,8 @@ class GeminiProvider(LLMProvider):
                     raise ValueError("Received empty response text from Gemini API")
                 return response_schema.model_validate_json(json_str)
             except Exception as e:
-                is_rate_limit = "429" in str(e) or "ResourceExhausted" in str(e)
+                err_str = str(e)
+                is_rate_limit = "429" in err_str or "resource_exhausted" in err_str.lower() or "resourceexhausted" in err_str.lower()
                 if attempt == max_attempts - 1:
                     logger.error(f"Gemini generate_structured failed after {max_attempts} attempts: {e}")
                     raise
@@ -111,10 +116,12 @@ class GeminiProvider(LLMProvider):
                     self._rotate_key()
                     consecutive_rate_limits += 1
                     if consecutive_rate_limits >= len(self._clients):
-                        backoff = (2 ** (consecutive_rate_limits - len(self._clients))) * 2
+                        delay_match = re.search(r"Please retry in (\d+(?:\.\d+)?)s", err_str)
+                        backoff = float(delay_match.group(1)) + 0.5 if delay_match else (2 ** (consecutive_rate_limits - len(self._clients))) * 2
+                        backoff = max(backoff, 5.0)
                         logger.warning(
                             f"Gemini generate_structured hit rate limit on all keys. "
-                            f"Retrying in {backoff}s... Error: {e}"
+                            f"Retrying in {backoff:.2f}s... Error: {e}"
                         )
                         await asyncio.sleep(backoff)
                     else:

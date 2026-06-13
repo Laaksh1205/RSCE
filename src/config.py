@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     # LLM Config
     extraction_model: str = "gemini-2.5-flash"
-    judge_model: str = "gemini-2.5-pro"
+    judge_model: str = "gemini-2.5-flash"
     llm_provider: Literal["gemini", "openai"] = "gemini"
 
     # Pipeline Thresholds
@@ -49,8 +49,8 @@ class Settings(BaseSettings):
 
     # Concurrency
     pubmed_concurrency: int = 3
-    llm_concurrency: int = 5
-    section_concurrency: int = 2
+    llm_concurrency: int = 3
+    section_concurrency: int = 1
 
     # Section extraction filtering
     # When True, only extract from sections listed in primary_section_names.

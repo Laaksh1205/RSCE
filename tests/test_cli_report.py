@@ -67,7 +67,7 @@ def test_print_cli_report(capsys, dummy_report):
     captured = capsys.readouterr()
     
     # Check that key sections and text are printed
-    assert "🔬 RESEARCH SYNTHESIS & CONTRADICTION ENGINE" in captured.out
+    assert "RESEARCH SYNTHESIS & CONTRADICTION ENGINE" in captured.out
     assert "Does metformin reduce breast cancer risk?" in captured.out
     assert "Pipeline Execution Statistics" in captured.out
     assert "Grounded Synthesis Narrative" in captured.out

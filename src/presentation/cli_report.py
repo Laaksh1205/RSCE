@@ -39,7 +39,7 @@ def print_cli_report(
     
     # 1. Header Title Panel
     title_text = Text()
-    title_text.append("🔬 RESEARCH SYNTHESIS & CONTRADICTION ENGINE\n", style="bold magenta")
+    title_text.append("RESEARCH SYNTHESIS & CONTRADICTION ENGINE\n", style="bold magenta")
     title_text.append(f"Query: ", style="bold cyan")
     title_text.append(query, style="italic cyan")
     

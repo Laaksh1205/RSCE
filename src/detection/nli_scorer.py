@@ -8,9 +8,13 @@ class NLIResult(BaseModel):
     neutral: float
     contradiction: float
 
+_MODEL_CACHE = {}
+
 class NLIScorer:
     def __init__(self, model_name: str = "cross-encoder/nli-deberta-v3-large"):
-        self.model = CrossEncoder(model_name)
+        if model_name not in _MODEL_CACHE:
+            _MODEL_CACHE[model_name] = CrossEncoder(model_name)
+        self.model = _MODEL_CACHE[model_name]
 
     def score_pairs(
         self,
