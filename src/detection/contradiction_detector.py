@@ -46,8 +46,8 @@ async def detect_contradictions(
         logger.info("No candidate pairs passed the similarity threshold.")
         return []
 
-    logger.info(f"Step 3: Scoring {len(candidate_pairs)} candidate pairs using local NLI model...")
-    scorer = NLIScorer()
+    logger.info(f"Step 3: Scoring {len(candidate_pairs)} candidate pairs using local NLI model ({settings.nli_model})...")
+    scorer = NLIScorer(model_name=settings.nli_model)
     nli_filtered = scorer.filter_contradictions(
         pairs=candidate_pairs,
         claims=claims,

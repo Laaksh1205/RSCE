@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     extraction_model: str = "gemini-2.5-flash"
     judge_model: str = "gemini-2.5-flash"
     llm_provider: Literal["gemini", "openai"] = "gemini"
+    nli_model: str = "cross-encoder/nli-deberta-v3-large"
 
     # Pipeline Thresholds
     max_papers: int = 25
