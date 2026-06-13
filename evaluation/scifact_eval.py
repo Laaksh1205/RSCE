@@ -82,14 +82,29 @@ def load_claim_evidence_pairs(corpus: dict[int, list[str]]) -> tuple[list[tuple[
     return pairs, labels
 
 def main():
-    parser = argparse.ArgumentParser(description="Evaluate contradiction detector on SciFact dataset.")
+    parser = argparse.ArgumentParser(
+        description="Evaluate the RSCE NLI contradiction detector on the SciFact dev benchmark.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
     parser.add_argument(
         "--limit",
         type=int,
         default=0,
-        help="Limit the number of pairs to evaluate. Use a value <= 0 to run on the full dataset (default: 0, which runs the full dataset)."
+        help="Number of pairs to evaluate. 0 = full dataset (recommended for README reporting).",
+    )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=None,
+        help=(
+            "NLI contradiction threshold override. "
+            "Defaults to settings.nli_contradiction_threshold from config."
+        ),
     )
     args = parser.parse_args()
+
+    # Allow CLI --threshold to override the value in settings/config
+    threshold = args.threshold if args.threshold is not None else settings.nli_contradiction_threshold
 
 
     download_scifact_dataset()
@@ -109,7 +124,6 @@ def main():
     nli_results = scorer.score_pairs(pairs)
     
     # 3. Compute precision, recall, and F1 metrics for CONTRADICT (REFUTES) label
-    threshold = settings.nli_contradiction_threshold
     tp, fp, fn, tn = 0, 0, 0, 0
     
     for res, true_label in zip(nli_results, labels):
@@ -144,7 +158,9 @@ def main():
     
     # 4. Save results to evaluation/results/scifact_results.json
     os.makedirs(RESULTS_DIR, exist_ok=True)
-    results_path = RESULTS_DIR / "scifact_results.json"
+    # Name the result file to reflect whether this was a full-dataset or sample run
+    suffix = f"_n{len(pairs)}" if args.limit > 0 else "_full"
+    results_path = RESULTS_DIR / f"scifact_results{suffix}.json"
     
     results_data = {
         "threshold": threshold,

@@ -94,11 +94,19 @@ async def extract_claims_from_paper(
     sections_to_extract = []
     if paper.full_text:
         parts = re.split(r'===\s*([A-Z\s]+)\s*===', paper.full_text)
+        primary_names = {s.lower() for s in settings.primary_section_names}
         for i in range((len(parts) - 1) // 2):
             sec_header = parts[i * 2 + 1].strip()
             sec_content = parts[i * 2 + 2].strip()
-            if len(sec_content) > 100:
-                sections_to_extract.append((sec_header, sec_content))
+            if len(sec_content) <= 100:
+                continue
+            if settings.primary_sections_only and sec_header.lower() not in primary_names:
+                logger.debug(
+                    f"Skipping section '{sec_header}' for paper {paper.pmid} "
+                    f"(not in primary_section_names, primary_sections_only=True)"
+                )
+                continue
+            sections_to_extract.append((sec_header, sec_content))
                 
     if sections_to_extract:
         # Run section-based extraction concurrently

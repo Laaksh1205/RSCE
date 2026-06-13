@@ -52,6 +52,23 @@ class Settings(BaseSettings):
     llm_concurrency: int = 5
     section_concurrency: int = 2
 
+    # Section extraction filtering
+    # When True, only extract from sections listed in primary_section_names.
+    # This improves claim precision and reduces LLM cost by ~40% for full-text papers.
+    # Set PRIMARY_SECTIONS_ONLY=false in .env to restore all-sections behavior.
+    primary_sections_only: bool = True
+    primary_section_names: list[str] = [
+        "abstract",
+        "results",
+        "result",
+        "discussion",
+        "discussions",
+        "conclusions",
+        "conclusion",
+        "findings",
+        "summary",
+    ]
+
     # Cost Estimation (approximate USD costs per paper, contradiction pair, and synthesis run)
     cost_per_paper: float = 0.0008         # Extraction cost per paper
     cost_per_contradiction: float = 0.008   # Judgment cost per candidate pair

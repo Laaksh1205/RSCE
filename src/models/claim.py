@@ -64,6 +64,7 @@ class ExtractedClaim(BaseModel):
     quote_anchor: str
     claim_type: ClaimType
     study_design: StudyDesign
+    sample_size: int | None = None
     entities: list[Entity] = Field(default_factory=list)
 
 class ClaimExtractionResponse(BaseModel):

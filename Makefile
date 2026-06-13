@@ -14,7 +14,10 @@ else
     PYTEST = $(VENV_BIN)/pytest
 endif
 
-.PHONY: install run test eval-scifact lint clean
+# LIMIT=0 means full dataset. Override for quick iteration: make eval-scifact LIMIT=60
+LIMIT ?= 0
+
+.PHONY: install run test eval-scifact eval-scifact-fast lint clean
 
 install:
 	python -m venv .venv
@@ -28,7 +31,11 @@ test:
 	$(PYTEST) tests/ -v
 
 eval-scifact:
-	$(PYTHON) -m evaluation.scifact_eval
+	$(PYTHON) -m evaluation.scifact_eval --limit $(LIMIT)
+
+# Quick 60-pair smoke test for development iteration (~30 sec on CPU)
+eval-scifact-fast:
+	$(PYTHON) -m evaluation.scifact_eval --limit 60
 
 lint:
 	$(RUFF) check src/ tests/

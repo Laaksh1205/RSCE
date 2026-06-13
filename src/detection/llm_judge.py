@@ -115,6 +115,15 @@ async def judge_contradiction_pair(
             )
             return None
 
+    # Run programmatic temporal analysis check for genuine contradictions
+    temporal_res = None
+    if response.is_genuine:
+        from src.detection.temporal import check_temporal_supersession
+        is_superseded, temporal_explanation = check_temporal_supersession(claim_a, claim_b)
+        if is_superseded:
+            c_type = ContradictionType.TEMPORAL_SUPERSESSION
+            temporal_res = temporal_explanation
+
     return ContradictionPair(
         claim_a=claim_a,
         claim_b=claim_b,
@@ -122,6 +131,7 @@ async def judge_contradiction_pair(
         contradiction_type=c_type,
         explanation=response.explanation,
         scope_note=response.scope_note,
+        temporal_resolution=temporal_res,
         is_genuine=response.is_genuine
     )
 

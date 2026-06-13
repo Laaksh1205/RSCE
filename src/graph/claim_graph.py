@@ -80,6 +80,7 @@ def build_claim_graph(
                 "score": pair.contradiction_score,
                 "explanation": pair.explanation,
                 "scope_note": pair.scope_note,
+                "temporal_resolution": pair.temporal_resolution,
                 "is_genuine": pair.is_genuine
             }
             G.add_edge(claim_a_id, claim_b_id, **edge_attrs)

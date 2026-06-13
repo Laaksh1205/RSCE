@@ -25,15 +25,19 @@ def export_graph_to_gexf(G: nx.MultiDiGraph, path: str) -> None:
     # Copy graph to avoid modifying original graph data
     G_export = G.copy()
     
-    # Convert list attributes to strings
+    # Convert list attributes to strings, and None values to empty strings
     for _, attrs in G_export.nodes(data=True):
         for key, val in list(attrs.items()):
-            if isinstance(val, list):
+            if val is None:
+                attrs[key] = ""
+            elif isinstance(val, list):
                 attrs[key] = ", ".join(map(str, val))
                 
     for _, _, attrs in G_export.edges(data=True):
         for key, val in list(attrs.items()):
-            if isinstance(val, list):
+            if val is None:
+                attrs[key] = ""
+            elif isinstance(val, list):
                 attrs[key] = ", ".join(map(str, val))
                 
     nx.write_gexf(G_export, path)

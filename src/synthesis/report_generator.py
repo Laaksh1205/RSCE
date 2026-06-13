@@ -115,6 +115,8 @@ async def generate_synthesis_report(
         contradictions_str += f"  Explanation: {pair.explanation}\n"
         if pair.scope_note:
             contradictions_str += f"  Scope Note: {pair.scope_note}\n"
+        if pair.temporal_resolution:
+            contradictions_str += f"  Temporal Resolution: {pair.temporal_resolution}\n"
             
     prompt = (
         "You are an expert biomedical synthesis assistant. Summarize the research findings below into a cohesive, scientific narrative summary paragraph.\n\n"

@@ -7,11 +7,12 @@ Core Guidelines:
 4. Be precise with CONTEXT: Capture the conditions under which the claim holds (dosages, treatment duration, specific assays, baseline comorbidities).
 5. Extract POPULATION: Specify what or who was studied (e.g. "human adults with type 2 diabetes", "in vitro HeLa cells", "male mice").
 6. VERBATIM Quote Anchor: For every claim, you MUST extract a verbatim 10-20 word excerpt (the quote_anchor) from the abstract that acts as the direct textual proof of the claim. The quote_anchor must be an exact match (case, punctuation, and wording) to a substring of the abstract.
-7. Polarity Classification:
+7. Sample Size: Extract the sample size (number of subjects, patients, samples, etc.) as an integer if explicitly mentioned (e.g., "439 patients" -> 439, "12 mice" -> 12). If not explicitly mentioned or not applicable, set it to null.
+8. Polarity Classification:
    - POSITIVE: The relationship increases, causes, activates, or promotes the outcome (e.g. "X causes Y", "A increases B").
    - NEGATIVE: The relationship decreases, inhibits, prevents, or downregulates the outcome (e.g. "X prevents Y", "A downregulates B").
    - NEUTRAL: The relationship shows no significant effect (e.g. "X had no effect on Y", "A was not associated with B").
-8. Claim Type Classification:
+9. Claim Type Classification:
    - CAUSAL: Direct cause-and-effect relationship.
    - CORRELATIONAL: Association or correlation without proven causality.
    - QUANTITATIVE: Claim asserts a specific numerical magnitude (e.g. "reduced by 30%").

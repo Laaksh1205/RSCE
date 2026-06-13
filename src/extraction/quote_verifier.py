@@ -175,6 +175,7 @@ def verify_and_filter_claims(
             context=extracted.context,
             quote_anchor=extracted.quote_anchor,
             study_design=extracted.study_design,
+            sample_size=extracted.sample_size,
             is_primary_finding=is_primary_finding
         )
         verified_claims.append(claim)

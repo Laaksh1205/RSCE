@@ -119,7 +119,11 @@ async def test_extraction_uses_full_text_when_available(mock_claims):
 
 
 @pytest.mark.asyncio
-async def test_section_by_section_extraction_is_called_in_parallel(mock_claims):
+async def test_section_by_section_extraction_is_called_in_parallel(monkeypatch, mock_claims):
+    # Disable primary-section filtering so both INTRODUCTION and RESULTS are extracted,
+    # keeping this test focused purely on verifying parallel dispatch.
+    monkeypatch.setattr(settings, "primary_sections_only", False)
+
     # Prepare a paper with substantial section lengths
     intro_text = "This is a very long introduction section with more than one hundred characters to trigger the section extraction logic. Metformin is used globally."
     results_text = "This is a very long results section with more than one hundred characters to trigger the section extraction logic. Metformin reduced risk."
@@ -142,7 +146,7 @@ async def test_section_by_section_extraction_is_called_in_parallel(mock_claims):
     ]
     
     claims = await extract_claims_from_paper(paper, mock_llm)
-    # It should have called generate_structured twice
+    # It should have called generate_structured twice (one per section)
     assert mock_llm.generate_structured.call_count == 2
     assert len(claims) == 1
     
@@ -205,6 +209,81 @@ async def test_section_concurrency_limits_parallel_calls(monkeypatch, mock_claim
     
     # Max active concurrent calls must not exceed section_concurrency (which is 2)
     assert max_active_calls == 2
+
+
+@pytest.mark.asyncio
+async def test_primary_sections_only_filters_intro_and_methods(monkeypatch, mock_claims):
+    """When primary_sections_only=True, Introduction and Methods sections must be skipped
+    and only primary sections (e.g. Results) should trigger LLM calls."""
+    monkeypatch.setattr(settings, "primary_sections_only", True)
+    monkeypatch.setattr(settings, "primary_section_names", ["results", "discussion"])
+
+    sec_intro = "Introduction text " * 10   # > 100 chars
+    sec_methods = "Methods text " * 10
+    sec_results = "Results text " * 10
+
+    paper = Paper(
+        pmid="77777",
+        title="Filtering Test",
+        authors=["Alice"],
+        year=2025,
+        journal="Journal",
+        abstract_text="Abstract",
+        full_text=(
+            f"=== INTRODUCTION ===\n{sec_intro}\n"
+            f"=== METHODS ===\n{sec_methods}\n"
+            f"=== RESULTS ===\n{sec_results}"
+        ),
+    )
+    mock_llm = MagicMock()
+    mock_llm.generate_structured = AsyncMock(
+        return_value=ClaimExtractionResponse(claims=mock_claims)
+    )
+
+    claims = await extract_claims_from_paper(paper, mock_llm)
+
+    # Only RESULTS qualifies — exactly 1 LLM call, not 3
+    assert mock_llm.generate_structured.call_count == 1
+    call_prompt = mock_llm.generate_structured.call_args[1]["prompt"]
+    assert "Section 'RESULTS'" in call_prompt
+    assert "Section 'INTRODUCTION'" not in call_prompt
+    assert "Section 'METHODS'" not in call_prompt
+    assert len(claims) == 1
+
+
+@pytest.mark.asyncio
+async def test_primary_sections_only_false_extracts_all_sections(monkeypatch, mock_claims):
+    """When primary_sections_only=False, all sections with len > 100 chars are extracted,
+    including Introduction and Methods."""
+    monkeypatch.setattr(settings, "primary_sections_only", False)
+
+    sec_intro = "Introduction text " * 10   # > 100 chars
+    sec_methods = "Methods text " * 10
+    sec_results = "Results text " * 10
+
+    paper = Paper(
+        pmid="88888",
+        title="All-Sections Test",
+        authors=["Bob"],
+        year=2025,
+        journal="Journal",
+        abstract_text="Abstract",
+        full_text=(
+            f"=== INTRODUCTION ===\n{sec_intro}\n"
+            f"=== METHODS ===\n{sec_methods}\n"
+            f"=== RESULTS ===\n{sec_results}"
+        ),
+    )
+    mock_llm = MagicMock()
+    mock_llm.generate_structured = AsyncMock(
+        return_value=ClaimExtractionResponse(claims=[])
+    )
+
+    await extract_claims_from_paper(paper, mock_llm)
+
+    # All 3 sections should trigger an LLM call when filtering is disabled
+    assert mock_llm.generate_structured.call_count == 3
+
 
 
 
