@@ -1,4 +1,5 @@
 from typing import Literal, Annotated
+import sys
 from pydantic import BeforeValidator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -37,6 +38,7 @@ class Settings(BaseSettings):
     judge_model: str = "gemini-2.5-flash"
     llm_provider: Literal["gemini", "openai"] = "gemini"
     nli_model: str = "cross-encoder/nli-deberta-v3-large"
+    gemini_rate_limit_interval: float = 0.0 if "pytest" in sys.modules else 4.2
 
     # Pipeline Thresholds
     max_papers: int = 25

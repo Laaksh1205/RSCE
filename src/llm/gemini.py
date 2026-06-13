@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import re
+import time
+import random
 from typing import Type, TypeVar
 from pydantic import BaseModel
 from google import genai
@@ -12,6 +14,23 @@ from src.llm.base import LLMProvider
 logger = logging.getLogger(__name__)
 
 T = TypeVar('T', bound=BaseModel)
+
+class GeminiRateLimiter:
+    _lock = asyncio.Lock()
+    _last_request_time = 0.0
+
+    @classmethod
+    async def wait_if_needed(cls, interval: float):
+        if interval <= 0:
+            return
+        async with cls._lock:
+            now = time.time()
+            elapsed = now - cls._last_request_time
+            if elapsed < interval:
+                sleep_time = interval - elapsed
+                logger.info(f"Rate limiting: sleeping {sleep_time:.2f}s to respect Gemini API limits...")
+                await asyncio.sleep(sleep_time)
+            cls._last_request_time = time.time()
 
 class GeminiProvider(LLMProvider):
     def __init__(self, model_name: str):
@@ -42,6 +61,9 @@ class GeminiProvider(LLMProvider):
         consecutive_rate_limits = 0
         
         for attempt in range(max_attempts):
+            # Enforce rate limit globally
+            rate_limit_interval = getattr(settings, "gemini_rate_limit_interval", 4.2)
+            await GeminiRateLimiter.wait_if_needed(rate_limit_interval)
             try:
                 response = await self.client.aio.models.generate_content(
                     model=self.model_name,
@@ -61,7 +83,8 @@ class GeminiProvider(LLMProvider):
                     consecutive_rate_limits += 1
                     if consecutive_rate_limits >= len(self._clients):
                         delay_match = re.search(r"Please retry in (\d+(?:\.\d+)?)s", err_str)
-                        backoff = float(delay_match.group(1)) + 0.5 if delay_match else (2 ** (consecutive_rate_limits - len(self._clients))) * 2
+                        jitter = random.uniform(0.5, 2.0)
+                        backoff = float(delay_match.group(1)) + jitter if delay_match else (2 ** (consecutive_rate_limits - len(self._clients))) * 2 + jitter
                         backoff = max(backoff, 5.0)
                         logger.warning(
                             f"Gemini generate_text hit rate limit on all keys. "
@@ -95,6 +118,9 @@ class GeminiProvider(LLMProvider):
         consecutive_rate_limits = 0
         
         for attempt in range(max_attempts):
+            # Enforce rate limit globally
+            rate_limit_interval = getattr(settings, "gemini_rate_limit_interval", 4.2)
+            await GeminiRateLimiter.wait_if_needed(rate_limit_interval)
             try:
                 response = await self.client.aio.models.generate_content(
                     model=self.model_name,
@@ -117,7 +143,8 @@ class GeminiProvider(LLMProvider):
                     consecutive_rate_limits += 1
                     if consecutive_rate_limits >= len(self._clients):
                         delay_match = re.search(r"Please retry in (\d+(?:\.\d+)?)s", err_str)
-                        backoff = float(delay_match.group(1)) + 0.5 if delay_match else (2 ** (consecutive_rate_limits - len(self._clients))) * 2
+                        jitter = random.uniform(0.5, 2.0)
+                        backoff = float(delay_match.group(1)) + jitter if delay_match else (2 ** (consecutive_rate_limits - len(self._clients))) * 2 + jitter
                         backoff = max(backoff, 5.0)
                         logger.warning(
                             f"Gemini generate_structured hit rate limit on all keys. "
