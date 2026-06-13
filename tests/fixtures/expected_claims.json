@@ -1,0 +1,215 @@
+{
+  "31234567": [
+    {
+      "text": "Metformin use is associated with a significant decrease in cancer incidence.",
+      "polarity": "NEGATIVE",
+      "population": "human patients",
+      "context": "Metformin use",
+      "quote_anchor": "Metformin use was associated with a significant decrease in cancer incidence.",
+      "claim_type": "CORRELATIONAL",
+      "study_design": "REVIEW",
+      "entities": [
+        {
+          "text": "Metformin",
+          "entity_type": "DRUG"
+        },
+        {
+          "text": "cancer",
+          "entity_type": "DISEASE"
+        }
+      ]
+    }
+  ],
+  "32345678": [
+    {
+      "text": "Metformin inhibits breast cancer cell growth.",
+      "polarity": "NEGATIVE",
+      "population": "breast cancer cells (in vitro and in vivo)",
+      "context": "through AMPK activation and mTOR pathway inhibition",
+      "quote_anchor": "Metformin inhibits breast cancer cell growth through AMPK activation and mTOR pathway inhibition in vitro and in vivo.",
+      "claim_type": "CAUSAL",
+      "study_design": "IN_VITRO",
+      "entities": [
+        {
+          "text": "Metformin",
+          "entity_type": "DRUG"
+        },
+        {
+          "text": "breast cancer",
+          "entity_type": "DISEASE"
+        },
+        {
+          "text": "cell growth",
+          "entity_type": "BIOMARKER"
+        }
+      ]
+    },
+    {
+      "text": "Metformin activates AMPK.",
+      "polarity": "POSITIVE",
+      "population": "breast cancer cells (in vitro)",
+      "context": "leading to inhibition of cell growth",
+      "quote_anchor": "Metformin inhibits breast cancer cell growth through AMPK activation",
+      "claim_type": "MECHANISTIC",
+      "study_design": "IN_VITRO",
+      "entities": [
+        {
+          "text": "Metformin",
+          "entity_type": "DRUG"
+        },
+        {
+          "text": "AMPK",
+          "entity_type": "PROTEIN"
+        }
+      ]
+    },
+    {
+      "text": "Metformin inhibits the mTOR pathway.",
+      "polarity": "NEGATIVE",
+      "population": "breast cancer cells (in vitro)",
+      "context": "leading to inhibition of cell growth",
+      "quote_anchor": "through AMPK activation and mTOR pathway inhibition in vitro",
+      "claim_type": "MECHANISTIC",
+      "study_design": "IN_VITRO",
+      "entities": [
+        {
+          "text": "Metformin",
+          "entity_type": "DRUG"
+        },
+        {
+          "text": "mTOR",
+          "entity_type": "PROTEIN"
+        },
+        {
+          "text": "pathway",
+          "entity_type": "PATHWAY"
+        }
+      ]
+    }
+  ],
+  "33456789": [
+    {
+      "text": "Metformin use is associated with improved overall survival in patients with prostate cancer.",
+      "polarity": "POSITIVE",
+      "population": "patients with prostate cancer",
+      "context": "metformin use",
+      "quote_anchor": "metformin was associated with improved overall survival",
+      "claim_type": "CORRELATIONAL",
+      "study_design": "COHORT",
+      "entities": [
+        {
+          "text": "metformin",
+          "entity_type": "DRUG"
+        },
+        {
+          "text": "prostate cancer",
+          "entity_type": "DISEASE"
+        },
+        {
+          "text": "overall survival",
+          "entity_type": "BIOMARKER"
+        }
+      ]
+    }
+  ],
+  "34567890": [
+    {
+      "text": "Colorectal cancer cells are sensitive to metformin-induced metabolic stress.",
+      "polarity": "POSITIVE",
+      "population": "Colorectal cancer cells",
+      "context": "metformin-induced metabolic stress",
+      "quote_anchor": "Colorectal cancer cells are sensitive to metformin-induced metabolic stress",
+      "claim_type": "MECHANISTIC",
+      "study_design": "IN_VITRO",
+      "entities": [
+        {
+          "text": "Colorectal cancer",
+          "entity_type": "DISEASE"
+        },
+        {
+          "text": "metformin",
+          "entity_type": "DRUG"
+        },
+        {
+          "text": "metabolic stress",
+          "entity_type": "BIOMARKER"
+        }
+      ]
+    },
+    {
+      "text": "Metformin-induced metabolic stress leads to apoptosis in colorectal cancer cells.",
+      "polarity": "POSITIVE",
+      "population": "Colorectal cancer cells",
+      "context": "metformin-induced metabolic stress",
+      "quote_anchor": "metformin-induced metabolic stress, leading to apoptosis and cell cycle arrest",
+      "claim_type": "CAUSAL",
+      "study_design": "IN_VITRO",
+      "entities": [
+        {
+          "text": "metformin",
+          "entity_type": "DRUG"
+        },
+        {
+          "text": "metabolic stress",
+          "entity_type": "BIOMARKER"
+        },
+        {
+          "text": "apoptosis",
+          "entity_type": "BIOMARKER"
+        },
+        {
+          "text": "Colorectal cancer",
+          "entity_type": "DISEASE"
+        }
+      ]
+    },
+    {
+      "text": "Metformin-induced metabolic stress leads to cell cycle arrest in colorectal cancer cells.",
+      "polarity": "POSITIVE",
+      "population": "Colorectal cancer cells",
+      "context": "metformin-induced metabolic stress",
+      "quote_anchor": "metformin-induced metabolic stress, leading to apoptosis and cell cycle arrest",
+      "claim_type": "CAUSAL",
+      "study_design": "IN_VITRO",
+      "entities": [
+        {
+          "text": "metformin",
+          "entity_type": "DRUG"
+        },
+        {
+          "text": "metabolic stress",
+          "entity_type": "BIOMARKER"
+        },
+        {
+          "text": "cell cycle arrest",
+          "entity_type": "BIOMARKER"
+        },
+        {
+          "text": "Colorectal cancer",
+          "entity_type": "DISEASE"
+        }
+      ]
+    }
+  ],
+  "35678901": [
+    {
+      "text": "Metformin reduces the risk of pancreatic cancer by 20%.",
+      "polarity": "NEGATIVE",
+      "population": "humans",
+      "context": "evaluated through a meta-analysis of observational studies",
+      "quote_anchor": "evaluates the effect of metformin on pancreatic cancer risk, demonstrating a 20% reduction",
+      "claim_type": "QUANTITATIVE",
+      "study_design": "META_ANALYSIS",
+      "entities": [
+        {
+          "text": "metformin",
+          "entity_type": "DRUG"
+        },
+        {
+          "text": "pancreatic cancer",
+          "entity_type": "DISEASE"
+        }
+      ]
+    }
+  ]
+}

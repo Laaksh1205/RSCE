@@ -1,0 +1,18 @@
+# Directories to ignore
+.venv/
+node_modules/
+frontend/node_modules/
+.next/
+frontend/.next/
+.git/
+.pytest_cache/
+graphify-out/
+data/
+evaluation/
+tests/
+scratch/
+scratch_pmc.xml
+*.faiss
+*.db
+*.pyc
+__pycache__/

@@ -1,0 +1,146 @@
+[
+  {
+    "abstract": "OBJECTIVE: To evaluate the efficacy of Drug X in diabetic patients. METHODS: We conducted a double-blind RCT on 200 human adults. RESULTS: Daily administration of 500mg Drug X for 6 months reduced HbA1c levels compared to placebo. No significant differences were observed in cardiovascular events. DISCUSSION: Drug X is effective for glycemic control.",
+    "claims": [
+      {
+        "text": "Daily administration of Drug X reduces HbA1c levels in diabetic patients.",
+        "polarity": "POSITIVE",
+        "population": "human adults with diabetes",
+        "context": "500mg daily for 6 months compared to placebo",
+        "quote_anchor": "Daily administration of 500mg Drug X for 6 months reduced HbA1c levels",
+        "claim_type": "QUANTITATIVE",
+        "study_design": "RCT",
+        "entities": [
+          {
+            "text": "Drug X",
+            "entity_type": "DRUG"
+          },
+          {
+            "text": "HbA1c",
+            "entity_type": "BIOMARKER"
+          }
+        ]
+      },
+      {
+        "text": "Drug X does not affect the risk of cardiovascular events in diabetic patients.",
+        "polarity": "NEUTRAL",
+        "population": "human adults with diabetes",
+        "context": "500mg daily for 6 months compared to placebo",
+        "quote_anchor": "No significant differences were observed in cardiovascular events.",
+        "claim_type": "CAUSAL",
+        "study_design": "RCT",
+        "entities": [
+          {
+            "text": "Drug X",
+            "entity_type": "DRUG"
+          },
+          {
+            "text": "cardiovascular events",
+            "entity_type": "DISEASE"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "abstract": "BACKGROUND: Coffee consumption habits. METHODS: We followed a cohort of 50,000 adult women for 10 years. RESULTS: High coffee intake (>=4 cups/day) was associated with a 30% reduction in type 2 diabetes risk. Decaffeinated coffee also showed a similar trend. CONCLUSION: Coffee may prevent diabetes.",
+    "claims": [
+      {
+        "text": "High coffee intake is associated with a reduced risk of type 2 diabetes.",
+        "polarity": "NEGATIVE",
+        "population": "adult women",
+        "context": ">=4 cups/day over 10 years",
+        "quote_anchor": "High coffee intake (>=4 cups/day) was associated with a 30% reduction in type 2 diabetes risk",
+        "claim_type": "CORRELATIONAL",
+        "study_design": "COHORT",
+        "entities": [
+          {
+            "text": "coffee",
+            "entity_type": "DRUG"
+          },
+          {
+            "text": "type 2 diabetes",
+            "entity_type": "DISEASE"
+          }
+        ]
+      },
+      {
+        "text": "Decaffeinated coffee consumption is associated with a reduced risk of type 2 diabetes.",
+        "polarity": "NEGATIVE",
+        "population": "adult women",
+        "context": "cohort followed for 10 years",
+        "quote_anchor": "Decaffeinated coffee also showed a similar trend",
+        "claim_type": "CORRELATIONAL",
+        "study_design": "COHORT",
+        "entities": [
+          {
+            "text": "Decaffeinated coffee",
+            "entity_type": "DRUG"
+          },
+          {
+            "text": "type 2 diabetes",
+            "entity_type": "DISEASE"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "abstract": "INTRODUCTION: Metformin acts on cell growth. METHODS: We treated HeLa cells with 10mM metformin for 24 hours. RESULTS: Metformin treatment induced phosphorylation of AMPK. Furthermore, AMPK activation led to the downregulation of mTOR signaling, suppressing cell proliferation. CONCLUSION: Metformin acts via the AMPK/mTOR axis.",
+    "claims": [
+      {
+        "text": "Metformin treatment induces phosphorylation of AMPK.",
+        "polarity": "POSITIVE",
+        "population": "in vitro HeLa cells",
+        "context": "10mM metformin treatment for 24 hours",
+        "quote_anchor": "Metformin treatment induced phosphorylation of AMPK",
+        "claim_type": "MECHANISTIC",
+        "study_design": "IN_VITRO",
+        "entities": [
+          {
+            "text": "metformin",
+            "entity_type": "DRUG"
+          },
+          {
+            "text": "AMPK",
+            "entity_type": "PROTEIN"
+          }
+        ]
+      },
+      {
+        "text": "AMPK activation leads to the downregulation of mTOR signaling.",
+        "polarity": "NEGATIVE",
+        "population": "in vitro HeLa cells",
+        "context": "downstream of 10mM metformin treatment",
+        "quote_anchor": "AMPK activation led to the downregulation of mTOR signaling",
+        "claim_type": "MECHANISTIC",
+        "study_design": "IN_VITRO",
+        "entities": [
+          {
+            "text": "AMPK",
+            "entity_type": "PROTEIN"
+          },
+          {
+            "text": "mTOR",
+            "entity_type": "PROTEIN"
+          }
+        ]
+      },
+      {
+        "text": "AMPK activation suppresses cell proliferation.",
+        "polarity": "NEGATIVE",
+        "population": "in vitro HeLa cells",
+        "context": "downstream of 10mM metformin treatment",
+        "quote_anchor": "suppressing cell proliferation",
+        "claim_type": "MECHANISTIC",
+        "study_design": "IN_VITRO",
+        "entities": [
+          {
+            "text": "AMPK",
+            "entity_type": "PROTEIN"
+          }
+        ]
+      }
+    ]
+  }
+]

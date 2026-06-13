@@ -1,0 +1,11 @@
+{
+  "threshold": 0.7,
+  "total_pairs": 5,
+  "true_positives": 2,
+  "false_positives": 1,
+  "false_negatives": 0,
+  "true_negatives": 2,
+  "precision": 0.6666666666666666,
+  "recall": 1.0,
+  "f1_score": 0.8
+}

@@ -1,0 +1,16 @@
+{
+  "aspirin": ["Aspirin", "MeSH:D001241"],
+  "asa": ["Aspirin", "MeSH:D001241"],
+  "acetylsalicylic acid": ["Aspirin", "MeSH:D001241"],
+  "metformin": ["Metformin", "MeSH:D008687"],
+  "glucophage": ["Metformin", "MeSH:D008687"],
+  "cancer": ["Neoplasms", "MeSH:D009369"],
+  "tumor": ["Neoplasms", "MeSH:D009369"],
+  "tumors": ["Neoplasms", "MeSH:D009369"],
+  "neoplasm": ["Neoplasms", "MeSH:D009369"],
+  "neoplasms": ["Neoplasms", "MeSH:D009369"],
+  "breast cancer": ["Breast Neoplasms", "MeSH:D001943"],
+  "breast tumors": ["Breast Neoplasms", "MeSH:D001943"],
+  "ampk": ["AMP-activated Protein Kinases", "MeSH:D055372"],
+  "mtor": ["TOR Serine-Threonine Kinases", "MeSH:D058570"]
+}

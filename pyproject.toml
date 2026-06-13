@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "research-synthesis-engine"
+version = "0.1.0"
+description = "A Research Synthesis & Contradiction Engine for scientific literature"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    { name = "Laaksh Parikh" }
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pydantic>=2.0",
+    "pydantic-settings",
+    "python-dotenv",
+    "aiohttp",
+    "google-genai>=1.0",
+    "openai>=1.0",
+    "sentence-transformers",
+    "faiss-cpu",
+    "torch",
+    "transformers",
+    "accelerate",
+    "rapidfuzz",
+    "rich",
+    "typer",
+    "networkx",
+    "lxml",
+    "fastapi",
+    "uvicorn"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+    "ruff"
+]
+nlp = [
+    "spacy>=3.0.0,<4.0.0",
+    "scispacy>=0.5.0",
+    "en-core-sci-sm @ https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_core_sci_sm-0.5.4.tar.gz"
+]
+
+[project.scripts]
+rsce = "src.main:app"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

@@ -1,0 +1,92 @@
+[
+  {
+    "pmid": "31234567",
+    "title": "Metformin and Cancer Risk: A Systematic Review",
+    "authors": ["John Smith", "Alice Johnson"],
+    "year": 2020,
+    "journal": "Journal of Clinical Oncology",
+    "abstract_text": "BACKGROUND: Metformin has been shown to reduce cancer risk. METHODS: We conducted a systematic review. RESULTS: Metformin use was associated with a significant decrease in cancer incidence. CONCLUSIONS: Metformin shows promise.",
+    "doi": "10.1200/JCO.2020.12.345"
+  },
+  {
+    "pmid": "32345678",
+    "title": "Mechanisms of Metformin in Breast Cancer Prevention",
+    "authors": ["Robert Lee", "Emily Davis"],
+    "year": 2021,
+    "journal": "Breast Cancer Research",
+    "abstract_text": "Metformin inhibits breast cancer cell growth through AMPK activation and mTOR pathway inhibition in vitro and in vivo.",
+    "doi": "10.1186/s13058-021-0123-x"
+  },
+  {
+    "pmid": "33456789",
+    "title": "Metformin Use and Prostate Cancer Survival",
+    "authors": ["David Miller", "Sarah Wilson"],
+    "year": 2022,
+    "journal": "The Prostate",
+    "abstract_text": "We investigated the association between metformin use and survival in patients with prostate cancer. In this cohort study, metformin was associated with improved overall survival.",
+    "doi": "10.1002/pros.24321"
+  },
+  {
+    "pmid": "34567890",
+    "title": "Efficacy of Metformin in Colorectal Cancer",
+    "authors": ["James Taylor", "Patricia Brown"],
+    "year": 2023,
+    "journal": "Cancer Letters",
+    "abstract_text": "Colorectal cancer cells are sensitive to metformin-induced metabolic stress, leading to apoptosis and cell cycle arrest.",
+    "doi": "10.1016/j.canlet.2023.123456"
+  },
+  {
+    "pmid": "35678901",
+    "title": "Metformin and Pancreatic Cancer: A Meta-Analysis",
+    "authors": ["Linda Jones", "Michael Garcia"],
+    "year": 2023,
+    "journal": "Pancreas",
+    "abstract_text": "This meta-analysis of observational studies evaluates the effect of metformin on pancreatic cancer risk, demonstrating a 20% reduction.",
+    "doi": "10.1097/MPA.0000000000001234"
+  },
+  {
+    "pmid": "36789012",
+    "title": "Low-Dose Metformin and Lung Cancer Progression",
+    "authors": ["William Rodriguez", "Elizabeth Martinez"],
+    "year": 2024,
+    "journal": "Lung Cancer",
+    "abstract_text": "Low-dose metformin inhibits progression of lung cancer by targeting the inflammatory microenvironment in mice models.",
+    "doi": "10.1016/j.lungcan.2024.12345"
+  },
+  {
+    "pmid": "37890123",
+    "title": "Metformin and Ovarian Cancer Chemosensitivity",
+    "authors": ["Barbara Hernandez", "Richard Lopez"],
+    "year": 2024,
+    "journal": "Gynecologic Oncology",
+    "abstract_text": "Metformin synergizes with cisplatin to reverse chemoresistance in ovarian cancer cells via downregulation of RAD51.",
+    "doi": "10.1016/j.ygyno.2024.54321"
+  },
+  {
+    "pmid": "38901234",
+    "title": "Metformin as an Adjuvant Therapy in Melanoma",
+    "authors": ["Susan Gonzalez", "Joseph Wilson"],
+    "year": 2025,
+    "journal": "Journal of Investigative Dermatology",
+    "abstract_text": "Adjuvant metformin treatment improves recurrence-free survival in melanoma patients by activating anti-tumor T-cell responses.",
+    "doi": "10.1016/j.jid.2025.01234"
+  },
+  {
+    "pmid": "39012345",
+    "title": "Metformin inhibits glioblastoma stem cells",
+    "authors": ["Jessica Thomas", "Charles Anderson"],
+    "year": 2025,
+    "journal": "Neuro-Oncology",
+    "abstract_text": "Glioblastoma stem cells are selectively targeted by metformin via mitochondrial complex I inhibition, reducing neurosphere formation.",
+    "doi": "10.1093/neuonc/noa012"
+  },
+  {
+    "pmid": "40123456",
+    "title": "Safety and Tolerability of Metformin in Cancer Patients",
+    "authors": ["Karen Jackson", "Christopher White"],
+    "year": 2026,
+    "journal": "Cancer Chemotherapy and Pharmacology",
+    "abstract_text": "A phase I trial showing metformin is well-tolerated at therapeutic doses in combination with standard chemotherapy regimens.",
+    "doi": "10.1007/s00280-026-01234-y"
+  }
+]
