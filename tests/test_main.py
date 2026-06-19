@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, patch
 from typer.testing import CliRunner
 import uuid
 
+from src.config import settings
 from src.main import app
 from src.pipeline import PipelineState
 from src.models.paper import Paper
@@ -63,7 +64,8 @@ def test_cli_analyze_command(
     mock_run_pipeline.return_value = mock_pipeline_state
 
     # Run CLI command
-    result = runner.invoke(app, ["Does metformin reduce cancer risk?"])
+    with patch.object(settings, "gemini_api_key", "mock-key"):
+        result = runner.invoke(app, ["Does metformin reduce cancer risk?"])
 
     # Assert success and outputs
     assert result.exit_code == 0
@@ -82,7 +84,8 @@ def test_cli_analyze_command_with_seed_claim(
     mock_run_pipeline.return_value = mock_pipeline_state
 
     # Run CLI command with seed claim
-    result = runner.invoke(app, ["Does metformin reduce cancer risk?", "--seed-claim", "Metformin increases risk"])
+    with patch.object(settings, "gemini_api_key", "mock-key"):
+        result = runner.invoke(app, ["Does metformin reduce cancer risk?", "--seed-claim", "Metformin increases risk"])
 
     # Assert success and outputs
     assert result.exit_code == 0
@@ -102,13 +105,14 @@ def test_cli_analyze_command_with_filters(
     mock_run_pipeline.return_value = mock_pipeline_state
 
     # Run CLI command with search filters
-    result = runner.invoke(app, [
-        "Does metformin reduce cancer risk?",
-        "--date-from", "2018",
-        "--date-to", "2023",
-        "--journal", "Nature",
-        "--journal", "Science"
-    ])
+    with patch.object(settings, "gemini_api_key", "mock-key"):
+        result = runner.invoke(app, [
+            "Does metformin reduce cancer risk?",
+            "--date-from", "2018",
+            "--date-to", "2023",
+            "--journal", "Nature",
+            "--journal", "Science"
+        ])
 
     # Assert success and outputs
     assert result.exit_code == 0

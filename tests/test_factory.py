@@ -5,19 +5,21 @@ from src.config import settings
 def test_get_llm_factory():
     # Test getting gemini provider (default model)
     get_llm.cache_clear()
-    with patch.object(settings, "llm_provider", "gemini"):
-        with patch.object(settings, "extraction_model", "gemini-2.5-flash"):
-            llm = get_llm()
-            assert isinstance(llm, GeminiProvider)
-            assert llm.model_name == "gemini-2.5-flash"
+    with patch.object(settings, "gemini_api_key", "mock-key"):
+        with patch.object(settings, "llm_provider", "gemini"):
+            with patch.object(settings, "extraction_model", "gemini-2.5-flash"):
+                llm = get_llm()
+                assert isinstance(llm, GeminiProvider)
+                assert llm.model_name == "gemini-2.5-flash"
             
     # Test getting gemini provider with custom judge model
     get_llm.cache_clear()
-    with patch.object(settings, "llm_provider", "gemini"):
-        with patch.object(settings, "judge_model", "gemini-2.5-pro"):
-            llm = get_llm(settings.judge_model)
-            assert isinstance(llm, GeminiProvider)
-            assert llm.model_name == "gemini-2.5-pro"
+    with patch.object(settings, "gemini_api_key", "mock-key"):
+        with patch.object(settings, "llm_provider", "gemini"):
+            with patch.object(settings, "judge_model", "gemini-2.5-pro"):
+                llm = get_llm(settings.judge_model)
+                assert isinstance(llm, GeminiProvider)
+                assert llm.model_name == "gemini-2.5-pro"
             
     # Test getting openai provider (default model)
     get_llm.cache_clear()

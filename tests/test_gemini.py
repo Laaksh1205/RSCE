@@ -9,7 +9,8 @@ class DummyResponseModel(BaseModel):
     score: int
 
 @pytest.mark.asyncio
-async def test_gemini_generate_structured():
+async def test_gemini_generate_structured(monkeypatch):
+    monkeypatch.setattr(settings, "gemini_api_key", "mock-key")
     provider = GeminiProvider(model_name="gemini-2.5-flash")
     
     # Mock response object returned by the client
@@ -31,7 +32,8 @@ async def test_gemini_generate_structured():
         mock_gen.assert_called_once()
 
 @pytest.mark.asyncio
-async def test_gemini_generate_text():
+async def test_gemini_generate_text(monkeypatch):
+    monkeypatch.setattr(settings, "gemini_api_key", "mock-key")
     provider = GeminiProvider(model_name="gemini-2.5-flash")
     
     mock_response = MagicMock()
