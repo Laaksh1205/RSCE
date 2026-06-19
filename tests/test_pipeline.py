@@ -1,5 +1,4 @@
 import pytest
-import uuid
 import tempfile
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -123,13 +122,14 @@ async def test_run_full_pipeline_end_to_end(temp_db):
         )
         
         # 3. Patch external dependencies
-        with patch("src.pipeline.ingest_papers", new_callable=AsyncMock) as mock_ingest:
-            mock_ingest.return_value = [mock_paper]
+        with patch("src.pipeline.search_pubmed", new_callable=AsyncMock) as mock_search, \
+             patch("src.pipeline.fetch_abstracts", new_callable=AsyncMock) as mock_fetch:
+            mock_search.return_value = ["11111"]
+            mock_fetch.return_value = [mock_paper]
             
-            from src.models.claim import Claim
             from src.models.contradiction import ContradictionType, ContradictionPair
             
-            async def mock_detect_side_effect(claims, llm=None):
+            async def mock_detect_side_effect(claims, llm=None, **kwargs):
                 c = claims[0]
                 return [
                     ContradictionPair(
@@ -143,7 +143,7 @@ async def test_run_full_pipeline_end_to_end(temp_db):
                     )
                 ]
             
-            with patch("src.pipeline.detect_contradictions", side_effect=mock_detect_side_effect) as mock_detect:
+            with patch("src.pipeline.detect_contradictions", side_effect=mock_detect_side_effect):
                 
                 # Mock LLM for claim extraction (Phase 1) and report generation (Phase 3)
                 mock_llm = MagicMock()
@@ -254,11 +254,13 @@ async def test_full_pipeline_integration_no_mock_detection(temp_db, temp_faiss):
             entities=[Entity(text="Metformin", entity_type=EntityType.DRUG)]
         )
         
-        # 3. Patch ingest_papers and enrich_papers_with_full_text to avoid network calls
-        with patch("src.pipeline.ingest_papers", new_callable=AsyncMock) as mock_ingest, \
-             patch("src.pipeline.enrich_papers_with_full_text", new_callable=AsyncMock) as mock_enrich:
+        # 3. Patch search_pubmed, fetch_abstracts, and enrich_papers_with_full_text to avoid network calls
+        with patch("src.pipeline.search_pubmed", new_callable=AsyncMock) as mock_search, \
+             patch("src.pipeline.fetch_abstracts", new_callable=AsyncMock) as mock_fetch, \
+             patch("src.pipeline.enrich_papers_with_full_text", new_callable=AsyncMock):
              
-            mock_ingest.return_value = mock_papers
+            mock_search.return_value = ["11111", "22222"]
+            mock_fetch.return_value = mock_papers
             
             # 4. Construct a mock LLM that generates extracted claims, judge responses, and report summary
             from src.detection.llm_judge import JudgeResponse

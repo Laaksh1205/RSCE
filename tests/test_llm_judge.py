@@ -2,7 +2,7 @@ import pytest
 import uuid
 from unittest.mock import AsyncMock, MagicMock
 
-from src.models.claim import Claim, ClaimType, Polarity, StudyDesign, Entity, EntityType
+from src.models.claim import Claim, ClaimType, Polarity, StudyDesign
 from src.models.contradiction import ContradictionType
 from src.detection.llm_judge import judge_contradiction_pair, judge_batch, JudgeResponse
 

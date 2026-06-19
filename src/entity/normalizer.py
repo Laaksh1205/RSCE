@@ -1,10 +1,8 @@
 import json
 import logging
-import asyncio
-from typing import Any
 
 from src.config import settings
-from src.models.claim import Claim, Entity
+from src.models.claim import Claim
 from src.llm import get_llm
 from pydantic import BaseModel, Field
 
@@ -13,9 +11,9 @@ logger = logging.getLogger(__name__)
 # Try to detect if scispacy and its dependencies are available (compiled / installed)
 SCISPACY_AVAILABLE = False
 try:
-    import spacy
-    import scispacy
-    from scispacy.linking import EntityLinker
+    import spacy  # noqa: F401
+    import scispacy  # noqa: F401
+    from scispacy.linking import EntityLinker  # noqa: F401
     SCISPACY_AVAILABLE = True
 except ImportError:
     pass

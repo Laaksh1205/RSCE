@@ -1,7 +1,6 @@
 import os
 import sys
 import json
-import sqlite3
 
 # Add P1 to path so we can import src
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

@@ -1,10 +1,10 @@
 import pytest
 import asyncio
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 from src.config import settings
 from src.models.paper import Paper
 from src.models.claim import ExtractedClaim, ClaimExtractionResponse, ClaimType, Polarity, StudyDesign, Entity, EntityType
-from src.extraction.claim_extractor import extract_claims_from_paper, extract_claims_batch
+from src.extraction.claim_extractor import extract_claims_from_paper
 
 @pytest.fixture
 def sample_paper():

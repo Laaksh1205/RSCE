@@ -94,6 +94,15 @@ async def get_graph(run_id: str):
 @router.get("/demo/{topic}")
 async def get_demo_results(topic: str):
     """Retrieve all data for a pre-loaded demo topic: report, claims, and graph."""
+    # Validate and sanitize topic parameter
+    if not topic or not isinstance(topic, str):
+        raise HTTPException(status_code=400, detail="Invalid topic parameter")
+
+    # Remove any potentially dangerous characters
+    sanitized_topic = topic.lower().strip()
+    if not sanitized_topic.replace('_', '').replace('-', '').isalnum():
+        raise HTTPException(status_code=400, detail="Topic contains invalid characters")
+
     topic_map = {
         "metformin": "demo_metformin",
         "metformin_cancer_risk": "demo_metformin",
@@ -102,12 +111,12 @@ async def get_demo_results(topic: str):
         "ssri": "demo_ssri",
         "ssri_depression_adolescents": "demo_ssri",
     }
-    
-    run_id = topic_map.get(topic.lower().strip())
+
+    run_id = topic_map.get(sanitized_topic)
     if not run_id:
         raise HTTPException(
-            status_code=404, 
-            detail=f"Demo topic '{topic}' not found. Available: metformin, fasting, ssri"
+            status_code=404,
+            detail=f"Demo topic '{sanitized_topic}' not found. Available: metformin, fasting, ssri"
         )
         
     run = get_pipeline_run(run_id)

@@ -146,7 +146,7 @@ def main():
     
     # Print results to stdout
     print(f"\nSciFact Evaluation Results (Threshold: {threshold}):")
-    print(f"==================================================")
+    print("==================================================")
     print(f"Total Pairs Evaluated: {len(pairs)}")
     print(f"True Positives (TP):  {tp}")
     print(f"False Positives (FP): {fp}")

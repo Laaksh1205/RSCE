@@ -56,6 +56,7 @@ export interface SynthesisReport {
   summary: string;
   contradictions: ContradictionPair[];
   consensus_scores: Record<string, number>;
+  knowledge_gaps?: string[];
   total_papers: number;
   total_claims: number;
   metadata?: any;
@@ -73,10 +74,24 @@ export default function ResultsPage() {
     claims_extracted: number;
     contradictions_found: number;
     error_message?: string;
+    status_message: string;
+    total_papers: number;
+    papers_extracted: number;
+    nli_pairs_total: number;
+    nli_pairs_scored: number;
+    judge_pairs_total: number;
+    judge_pairs_scored: number;
   }>({
     papers_fetched: 0,
     claims_extracted: 0,
     contradictions_found: 0,
+    status_message: "Initializing...",
+    total_papers: 0,
+    papers_extracted: 0,
+    nli_pairs_total: 0,
+    nli_pairs_scored: 0,
+    judge_pairs_total: 0,
+    judge_pairs_scored: 0,
   });
 
   const [report, setReport] = useState<SynthesisReport | null>(null);
@@ -97,6 +112,8 @@ export default function ResultsPage() {
   const [selectedPaper, setSelectedPaper] = useState<any | null>(null);
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
   const [selectedContradiction, setSelectedContradiction] = useState<ContradictionPair | null>(null);
+  const statusRef = useRef<typeof status>("LOADING");
+  const mountedRef = useRef(true);
 
   // References list compiled from claims
   const papersMap = useMemo(() => {
@@ -160,6 +177,10 @@ export default function ResultsPage() {
     }
   };
 
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
   // Status Check & WebSocket hook
   useEffect(() => {
     if (!runId) return;
@@ -168,33 +189,53 @@ export default function ResultsPage() {
     let pollInterval: NodeJS.Timeout | null = null;
 
     const checkStatus = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/status/${runId}`);
-        if (!res.ok) {
-          throw new Error("Could not find this analysis run.");
-        }
-        const data = await res.json();
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const res = await fetch(`${API_BASE}/api/status/${runId}`);
+          if (res.status === 404 && attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 750));
+            continue;
+          }
+          if (!res.ok) {
+            throw new Error("Could not find this analysis run.");
+          }
+          const data = await res.json();
         
         setProgress({
           papers_fetched: data.papers_fetched || 0,
           claims_extracted: data.claims_extracted || 0,
           contradictions_found: data.contradictions_found || 0,
+          error_message: data.error_message,
+          status_message: data.status_message || "",
+          total_papers: data.total_papers || 0,
+          papers_extracted: data.papers_extracted || 0,
+          nli_pairs_total: data.nli_pairs_total || 0,
+          nli_pairs_scored: data.nli_pairs_scored || 0,
+          judge_pairs_total: data.judge_pairs_total || 0,
+          judge_pairs_scored: data.judge_pairs_scored || 0,
         });
 
-        if (data.status === "COMPLETED") {
-          await fetchFinalResults(runId);
-        } else if (data.status === "FAILED") {
-          setError(data.error_message || "The analysis run failed during processing.");
+          if (data.status === "COMPLETED") {
+            await fetchFinalResults(runId);
+          } else if (data.status === "FAILED") {
+            setError(data.error_message || "The analysis run failed during processing.");
+            setStatus("FAILED");
+          } else {
+            // RUNNING - Connect websocket for updates
+            setStatus("RUNNING");
+            connectWebSocket();
+          }
+          return;
+        } catch (err: any) {
+          if (attempt < 2) {
+            await new Promise((resolve) => setTimeout(resolve, 750));
+            continue;
+          }
+          console.error(err);
+          setError(err.message || "Failed to poll run status.");
           setStatus("FAILED");
-        } else {
-          // RUNNING - Connect websocket for updates
-          setStatus("RUNNING");
-          connectWebSocket();
+          return;
         }
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Failed to poll run status.");
-        setStatus("FAILED");
       }
     };
 
@@ -212,6 +253,13 @@ export default function ResultsPage() {
             claims_extracted: data.claims_extracted || 0,
             contradictions_found: data.contradictions_found || 0,
             error_message: data.error_message,
+            status_message: data.status_message || "",
+            total_papers: data.total_papers || 0,
+            papers_extracted: data.papers_extracted || 0,
+            nli_pairs_total: data.nli_pairs_total || 0,
+            nli_pairs_scored: data.nli_pairs_scored || 0,
+            judge_pairs_total: data.judge_pairs_total || 0,
+            judge_pairs_scored: data.judge_pairs_scored || 0,
           });
 
           if (data.status === "COMPLETED") {
@@ -234,7 +282,7 @@ export default function ResultsPage() {
 
       ws.onclose = () => {
         // If still running and ws closed, fallback to polling
-        if (status === "RUNNING") {
+        if (statusRef.current === "RUNNING" && mountedRef.current) {
           startPolling();
         }
       };
@@ -251,6 +299,14 @@ export default function ResultsPage() {
               papers_fetched: data.papers_fetched || 0,
               claims_extracted: data.claims_extracted || 0,
               contradictions_found: data.contradictions_found || 0,
+              error_message: data.error_message,
+              status_message: data.status_message || "",
+              total_papers: data.total_papers || 0,
+              papers_extracted: data.papers_extracted || 0,
+              nli_pairs_total: data.nli_pairs_total || 0,
+              nli_pairs_scored: data.nli_pairs_scored || 0,
+              judge_pairs_total: data.judge_pairs_total || 0,
+              judge_pairs_scored: data.judge_pairs_scored || 0,
             });
 
             if (data.status === "COMPLETED") {
@@ -272,6 +328,7 @@ export default function ResultsPage() {
     checkStatus();
 
     return () => {
+      mountedRef.current = false;
       if (ws) ws.close();
       if (pollInterval) clearInterval(pollInterval);
     };
@@ -559,6 +616,24 @@ export default function ResultsPage() {
 
   // RUNNING (Active Pipeline progress) State
   if (status === "RUNNING") {
+    const totalPapersStr = progress.total_papers > 0 ? progress.total_papers.toString() : "...";
+    
+    // Calculate contradiction detection progress
+    let contradictionProgress = 0;
+    let contradictionStatusStr = `${progress.contradictions_found} flagged`;
+    
+    if (progress.judge_pairs_total > 0) {
+      const pct = Math.min((progress.judge_pairs_scored / progress.judge_pairs_total) * 50, 50);
+      contradictionProgress = 50 + pct;
+      contradictionStatusStr = `LLM Judge: ${progress.judge_pairs_scored} of ${progress.judge_pairs_total} (${progress.contradictions_found} flagged)`;
+    } else if (progress.nli_pairs_total > 0) {
+      contradictionProgress = Math.min((progress.nli_pairs_scored / progress.nli_pairs_total) * 50, 50);
+      contradictionStatusStr = `NLI Filter: ${progress.nli_pairs_scored} of ${progress.nli_pairs_total} scored`;
+    } else if (progress.claims_extracted > 0) {
+      contradictionProgress = 0;
+      contradictionStatusStr = "Preparing candidate pairs...";
+    }
+
     return (
       <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col items-center justify-center p-6 relative overflow-hidden">
         {/* Background Gradients */}
@@ -583,12 +658,14 @@ export default function ResultsPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-semibold">
                 <span className="text-zinc-400 uppercase tracking-wider">1. Ingesting Papers</span>
-                <span className="text-purple-400 font-mono font-bold">{progress.papers_fetched} fetched</span>
+                <span className="text-purple-400 font-mono font-bold">
+                  {progress.papers_fetched} of {totalPapersStr} fetched
+                </span>
               </div>
               <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden border border-zinc-800/50">
                 <div 
                   className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full transition-all duration-500 ease-out" 
-                  style={{ width: `${Math.min((progress.papers_fetched / 25) * 100, 100)}%` }}
+                  style={{ width: `${progress.total_papers > 0 ? Math.min((progress.papers_fetched / progress.total_papers) * 100, 100) : 0}%` }}
                 />
               </div>
             </div>
@@ -597,12 +674,14 @@ export default function ResultsPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-semibold">
                 <span className="text-zinc-400 uppercase tracking-wider">2. Extracting & Grounding Claims</span>
-                <span className="text-indigo-400 font-mono font-bold">{progress.claims_extracted} extracted</span>
+                <span className="text-indigo-400 font-mono font-bold">
+                  {progress.papers_extracted} of {totalPapersStr} papers ({progress.claims_extracted} claims)
+                </span>
               </div>
               <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden border border-zinc-800/50">
                 <div 
                   className="h-full bg-gradient-to-r from-indigo-600 to-cyan-600 rounded-full transition-all duration-500 ease-out" 
-                  style={{ width: `${Math.min((progress.claims_extracted / 125) * 100, 100)}%` }}
+                  style={{ width: `${progress.total_papers > 0 ? Math.min((progress.papers_extracted / progress.total_papers) * 100, 100) : 0}%` }}
                 />
               </div>
             </div>
@@ -611,12 +690,12 @@ export default function ResultsPage() {
             <div className="space-y-2">
               <div className="flex justify-between text-xs font-semibold">
                 <span className="text-zinc-400 uppercase tracking-wider">3. Analyzing Contradictions</span>
-                <span className="text-cyan-400 font-mono font-bold">{progress.contradictions_found} flagged</span>
+                <span className="text-cyan-400 font-mono font-bold">{contradictionStatusStr}</span>
               </div>
               <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden border border-zinc-800/50">
                 <div 
                   className="h-full bg-gradient-to-r from-cyan-600 to-purple-600 rounded-full transition-all duration-500 ease-out animate-pulse" 
-                  style={{ width: progress.claims_extracted > 0 ? "50%" : "0%" }}
+                  style={{ width: `${contradictionProgress}%` }}
                 />
               </div>
             </div>
@@ -630,7 +709,7 @@ export default function ResultsPage() {
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
             <span className="text-zinc-400 text-xs font-medium">
-              Executing NLI contradiction analysis and LLM validation...
+              {progress.status_message || "Executing analysis..."}
             </span>
           </div>
         </div>
@@ -745,6 +824,30 @@ export default function ResultsPage() {
                     Click on any citation above to reveal the full source paper and its extracted clinical findings.
                   </div>
                 </div>
+
+                {/* Knowledge Gaps Panel */}
+                <div className="relative bg-gradient-to-br from-amber-950/10 to-zinc-950/10 border border-zinc-800 rounded-2xl p-6 shadow-xl overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
+                  
+                  <div className="flex items-center gap-2 mb-4 pb-3 border-b border-zinc-800/80">
+                    <svg className="w-5 h-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <h3 className="font-semibold text-sm uppercase tracking-wider text-zinc-300">Knowledge Gaps</h3>
+                  </div>
+
+                  {report?.knowledge_gaps && report.knowledge_gaps.length > 0 ? (
+                    <ul className="space-y-3">
+                      {report.knowledge_gaps.map((gap, i) => (
+                        <li key={i} className="text-zinc-300 text-xs md:text-sm leading-relaxed border-l-2 border-amber-500/40 pl-3">
+                          {gap}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-zinc-500 text-xs italic">No knowledge gaps detected. All claim topics have been tested or replicated by multiple papers in the corpus.</p>
+                  )}
+                </div>
               </section>
 
               {/* Contradiction Cards Section */}
@@ -839,14 +942,44 @@ export default function ResultsPage() {
                           >
                             <div className="space-y-3 flex-1">
                               {/* Claim A preview */}
-                              <div className="flex gap-2 items-start text-sm">
-                                <span className="font-bold text-zinc-500 mt-0.5 text-xs shrink-0 select-none">A</span>
-                                <p className="text-zinc-300 font-medium">{pair.claim_a.text}</p>
+                              <div className="flex gap-2.5 items-start text-sm">
+                                <span className="font-bold text-indigo-400 bg-indigo-500/10 w-5 h-5 rounded flex items-center justify-center mt-0.5 text-xs shrink-0 select-none">A</span>
+                                <div className="space-y-1">
+                                  <p className="text-zinc-300 font-medium">{pair.claim_a.text}</p>
+                                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-500 font-mono">
+                                    <span>{pair.claim_a.authors[0] || "Author"} et al. ({pair.claim_a.year})</span>
+                                    <span className="text-zinc-700">•</span>
+                                    <span className="px-1.5 py-0.5 rounded-sm bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-[9px]">
+                                      {report?.consensus_scores && report.consensus_scores[pair.claim_a.id] !== undefined
+                                        ? `${(report.consensus_scores[pair.claim_a.id] * 100).toFixed(0)}% Consensus`
+                                        : "100% Consensus"}
+                                    </span>
+                                    <span className="text-zinc-700">•</span>
+                                    <span className="text-zinc-500 uppercase tracking-wider text-[8px] bg-zinc-950/80 border border-zinc-900 px-1 py-0.5 rounded-sm">
+                                      {pair.claim_a.study_design}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
                               {/* Claim B preview */}
-                              <div className="flex gap-2 items-start text-sm">
-                                <span className="font-bold text-zinc-500 mt-0.5 text-xs shrink-0 select-none">B</span>
-                                <p className="text-zinc-400 font-medium">{pair.claim_b.text}</p>
+                              <div className="flex gap-2.5 items-start text-sm">
+                                <span className="font-bold text-purple-400 bg-purple-500/10 w-5 h-5 rounded flex items-center justify-center mt-0.5 text-xs shrink-0 select-none">B</span>
+                                <div className="space-y-1">
+                                  <p className="text-zinc-400 font-medium">{pair.claim_b.text}</p>
+                                  <div className="flex flex-wrap items-center gap-2 text-[10px] text-zinc-500 font-mono">
+                                    <span>{pair.claim_b.authors[0] || "Author"} et al. ({pair.claim_b.year})</span>
+                                    <span className="text-zinc-700">•</span>
+                                    <span className="px-1.5 py-0.5 rounded-sm bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-[9px]">
+                                      {report?.consensus_scores && report.consensus_scores[pair.claim_b.id] !== undefined
+                                        ? `${(report.consensus_scores[pair.claim_b.id] * 100).toFixed(0)}% Consensus`
+                                        : "100% Consensus"}
+                                    </span>
+                                    <span className="text-zinc-700">•</span>
+                                    <span className="text-zinc-500 uppercase tracking-wider text-[8px] bg-zinc-950/80 border border-zinc-900 px-1 py-0.5 rounded-sm">
+                                      {pair.claim_b.study_design}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
                             </div>
 
@@ -929,8 +1062,13 @@ export default function ResultsPage() {
                                     </button>
                                   </div>
                                   <div className="p-3 bg-zinc-950/70 border border-zinc-900 rounded-xl text-xs space-y-2">
-                                    <div className="font-mono text-zinc-500">
-                                      {pair.claim_a.authors.join(", ")} ({pair.claim_a.year})
+                                    <div className="flex justify-between items-center font-mono text-zinc-500 text-[11px]">
+                                      <span>{pair.claim_a.authors.join(", ")} ({pair.claim_a.year})</span>
+                                      {report?.consensus_scores && report.consensus_scores[pair.claim_a.id] !== undefined && (
+                                        <span className="px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded text-[10px] font-bold">
+                                          {(report.consensus_scores[pair.claim_a.id] * 100).toFixed(0)}% Consensus
+                                        </span>
+                                      )}
                                     </div>
                                     <div className="font-semibold text-zinc-300">
                                       "{pair.claim_a.text}"
@@ -956,8 +1094,13 @@ export default function ResultsPage() {
                                     </button>
                                   </div>
                                   <div className="p-3 bg-zinc-950/70 border border-zinc-900 rounded-xl text-xs space-y-2">
-                                    <div className="font-mono text-zinc-500">
-                                      {pair.claim_b.authors.join(", ")} ({pair.claim_b.year})
+                                    <div className="flex justify-between items-center font-mono text-zinc-500 text-[11px]">
+                                      <span>{pair.claim_b.authors.join(", ")} ({pair.claim_b.year})</span>
+                                      {report?.consensus_scores && report.consensus_scores[pair.claim_b.id] !== undefined && (
+                                        <span className="px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded text-[10px] font-bold">
+                                          {(report.consensus_scores[pair.claim_b.id] * 100).toFixed(0)}% Consensus
+                                        </span>
+                                      )}
                                     </div>
                                     <div className="font-semibold text-zinc-300">
                                       "{pair.claim_b.text}"
@@ -1068,7 +1211,7 @@ export default function ResultsPage() {
                   </div>
 
                   {/* Badges / Metrics */}
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-3 gap-2">
                     <div className="p-2 bg-zinc-950/40 border border-zinc-900 rounded-xl text-center">
                       <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest block mb-0.5">Polarity</span>
                       <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase inline-block ${
@@ -1086,6 +1229,15 @@ export default function ResultsPage() {
                       <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest block mb-0.5">NLI Conf</span>
                       <span className="text-zinc-200 text-xs font-mono font-bold">
                         {(selectedClaim.confidence_score * 100).toFixed(0)}%
+                      </span>
+                    </div>
+
+                    <div className="p-2 bg-zinc-950/40 border border-zinc-900 rounded-xl text-center">
+                      <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest block mb-0.5">Consensus</span>
+                      <span className="text-emerald-400 text-xs font-mono font-bold">
+                        {report?.consensus_scores && report.consensus_scores[selectedClaim.id] !== undefined
+                          ? `${(report.consensus_scores[selectedClaim.id] * 100).toFixed(0)}%`
+                          : "100%"}
                       </span>
                     </div>
                   </div>
@@ -1363,11 +1515,21 @@ export default function ResultsPage() {
                           <span className="px-1.5 py-0.5 rounded bg-zinc-900 border border-zinc-800 font-semibold uppercase">
                             {c.claim_type}
                           </span>
-                          <span className="flex items-center gap-1">
-                            Confidence: 
-                            <span className={c.confidence_score >= 0.85 ? "text-emerald-400" : "text-amber-400"}>
-                              {(c.confidence_score * 100).toFixed(0)}%
+                          <span className="flex items-center gap-2">
+                            <span>
+                              Confidence:{" "}
+                              <span className={c.confidence_score >= 0.85 ? "text-emerald-400" : "text-amber-400"}>
+                                {(c.confidence_score * 100).toFixed(0)}%
+                              </span>
                             </span>
+                            {report?.consensus_scores && report.consensus_scores[c.id] !== undefined && (
+                              <span className="border-l border-zinc-800 pl-2">
+                                Consensus:{" "}
+                                <span className="text-emerald-400">
+                                  {(report.consensus_scores[c.id] * 100).toFixed(0)}%
+                                </span>
+                              </span>
+                            )}
                           </span>
                         </div>
                       </div>

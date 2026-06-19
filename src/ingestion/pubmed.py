@@ -3,7 +3,7 @@ import asyncio
 import re
 import xml.etree.ElementTree as ET
 import aiohttp
-import weakref
+import threading
 from src.config import settings
 from src.models.paper import Paper
 
@@ -12,10 +12,12 @@ logger = logging.getLogger(__name__)
 PUBMED_BASE_URL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 
 # Shared semaphores bound to event loops to enforce global rate limits safely
-_search_semaphores = weakref.WeakKeyDictionary()
-_fetch_semaphores = weakref.WeakKeyDictionary()
+_search_semaphores = {}
+_fetch_semaphores = {}
+_pubmed_semaphores_lock = threading.Lock()
 
 _pubmed_key_index = 0
+_pubmed_key_lock = threading.Lock()
 
 def _apply_pubmed_credentials(params: dict):
     global _pubmed_key_index
@@ -29,14 +31,15 @@ def _apply_pubmed_credentials(params: dict):
     if api_key:
         params["api_key"] = api_key
 
-def _rotate_pubmed_credentials():
+async def _rotate_pubmed_credentials():
     global _pubmed_key_index
     creds = settings.pubmed_credentials
     if not creds:
         return
-    old_idx = _pubmed_key_index % len(creds)
-    _pubmed_key_index = (_pubmed_key_index + 1) % len(creds)
-    logger.info(f"PubMed credentials rotated from index {old_idx} to {_pubmed_key_index} (total credentials: {len(creds)}).")
+    with _pubmed_key_lock:
+        old_idx = _pubmed_key_index % len(creds)
+        _pubmed_key_index = (_pubmed_key_index + 1) % len(creds)
+        logger.info(f"PubMed credentials rotated from index {old_idx} to {_pubmed_key_index} (total credentials: {len(creds)}).")
 
 def get_search_semaphore() -> asyncio.Semaphore:
     try:
@@ -44,9 +47,15 @@ def get_search_semaphore() -> asyncio.Semaphore:
     except RuntimeError:
         return asyncio.Semaphore(settings.pubmed_concurrency)
 
-    if loop not in _search_semaphores:
-        _search_semaphores[loop] = asyncio.Semaphore(settings.pubmed_concurrency)
-    return _search_semaphores[loop]
+    with _pubmed_semaphores_lock:
+        # Clean up any closed loops to prevent memory leaks and loop ID collision issues
+        for old_loop in list(_search_semaphores.keys()):
+            if old_loop.is_closed():
+                del _search_semaphores[old_loop]
+
+        if loop not in _search_semaphores:
+            _search_semaphores[loop] = asyncio.Semaphore(settings.pubmed_concurrency)
+        return _search_semaphores[loop]
 
 def get_fetch_semaphore() -> asyncio.Semaphore:
     try:
@@ -54,11 +63,23 @@ def get_fetch_semaphore() -> asyncio.Semaphore:
     except RuntimeError:
         return asyncio.Semaphore(settings.pubmed_concurrency)
 
-    if loop not in _fetch_semaphores:
-        _fetch_semaphores[loop] = asyncio.Semaphore(settings.pubmed_concurrency)
-    return _fetch_semaphores[loop]
+    with _pubmed_semaphores_lock:
+        # Clean up any closed loops to prevent memory leaks and loop ID collision issues
+        for old_loop in list(_fetch_semaphores.keys()):
+            if old_loop.is_closed():
+                del _fetch_semaphores[old_loop]
 
-async def search_pubmed(query: str, max_results: int = 25) -> list[str]:
+        if loop not in _fetch_semaphores:
+            _fetch_semaphores[loop] = asyncio.Semaphore(settings.pubmed_concurrency)
+        return _fetch_semaphores[loop]
+
+async def search_pubmed(
+    query: str,
+    max_results: int = 25,
+    date_from: int | None = None,
+    date_to: int | None = None,
+    journals: list[str] | None = None
+) -> list[str]:
     """Search PubMed using esearch.fcgi and return a list of PMIDs.
     
     Uses ESearch: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi
@@ -66,13 +87,29 @@ async def search_pubmed(query: str, max_results: int = 25) -> list[str]:
     Returns: list of PMID strings
     """
     url = f"{PUBMED_BASE_URL}/esearch.fcgi"
+    
+    term = query
+    if journals:
+        clean_journals = [j.strip() for j in journals if j.strip()]
+        if clean_journals:
+            journal_clauses = [f'"{j}"[Journal]' for j in clean_journals]
+            journal_filter = " OR ".join(journal_clauses)
+            term = f"({term}) AND ({journal_filter})"
+
     base_params = {
         "db": "pubmed",
-        "term": query,
+        "term": term,
         "retmax": str(max_results),
         "sort": "relevance",
         "retmode": "json"
     }
+
+    if date_from is not None:
+        base_params["mindate"] = str(date_from)
+    if date_to is not None:
+        base_params["maxdate"] = str(date_to)
+    if date_from is not None or date_to is not None:
+        base_params["datetype"] = "pdat"
 
     sem = get_search_semaphore()
     async with sem:
@@ -92,7 +129,7 @@ async def search_pubmed(query: str, max_results: int = 25) -> list[str]:
                                 f"PubMed rate limit (429) in esearch. "
                                 f"Rotating credentials and retrying... (Attempt {attempt+1}/{max_attempts})"
                             )
-                            _rotate_pubmed_credentials()
+                            await _rotate_pubmed_credentials()
                             consecutive_rate_limits += 1
                             if not creds or consecutive_rate_limits >= len(creds):
                                 await asyncio.sleep(2)
@@ -248,7 +285,7 @@ async def fetch_abstracts(pmids: list[str]) -> list[Paper]:
                                 f"PubMed rate limit (429) in efetch. "
                                 f"Rotating credentials and retrying... (Attempt {attempt+1}/{max_attempts})"
                             )
-                            _rotate_pubmed_credentials()
+                            await _rotate_pubmed_credentials()
                             consecutive_rate_limits += 1
                             if not creds or consecutive_rate_limits >= len(creds):
                                 await asyncio.sleep(2)
@@ -269,13 +306,53 @@ async def fetch_abstracts(pmids: list[str]) -> list[Paper]:
 
     return parse_pubmed_xml(xml_content)
 
-async def ingest_papers(query: str, max_results: int = 25) -> list[Paper]:
+async def reformulate_query_for_pubmed(query: str) -> str:
+    """Use LLM to transform a natural language question into key medical search terms for PubMed."""
+    try:
+        from src.llm import get_llm
+        llm = get_llm()
+        prompt = (
+            "You are a biomedical search specialist. Convert the following natural language user query "
+            "into a clean, concise keyword search query optimized for PubMed (ESearch). "
+            "Rules:\n"
+            "1. Focus only on key scientific concepts, entities, drugs, diseases, or pathways.\n"
+            "2. Remove conversational words like 'Is', 'Does', 'primarily', 'caused', 'by', 'what', 'the', etc.\n"
+            "3. Do not include boolean operators like AND unless necessary; space-separated keywords are preferred.\n"
+            "4. Return ONLY the optimized query string. Do not add explanations or quotes.\n\n"
+            f"User query: {query}\n\n"
+            "PubMed keywords:"
+        )
+        optimized = await llm.generate_text(prompt, temperature=0.1)
+        optimized_clean = optimized.strip().strip('"').strip("'").strip()
+        logger.info(f"Reformulated PubMed search query from '{query}' to '{optimized_clean}'")
+        return optimized_clean
+    except Exception as e:
+        logger.warning(f"Failed to reformulate query via LLM: {e}")
+        # Return fallback by regex stripping common words
+        clean = re.sub(r"\b(is|does|primarily|caused|by|a|an|the|of|in|on|at|for|with|about|to|what|why|how|are)\b", "", query, flags=re.IGNORECASE)
+        clean = re.sub(r"[^\w\s]", "", clean)
+        clean = " ".join(clean.split())
+        return clean
+
+async def ingest_papers(
+    query: str,
+    max_results: int = 25,
+    date_from: int | None = None,
+    date_to: int | None = None,
+    journals: list[str] | None = None
+) -> list[Paper]:
     """End-to-end: query → PMIDs → Papers.
     
     Applies rate limiting (3 req/sec via asyncio.Semaphore).
     Handles < min_papers gracefully (warns).
     """
-    pmids = await search_pubmed(query, max_results)
+    pmids = await search_pubmed(query, max_results, date_from, date_to, journals)
+    if not pmids:
+        logger.info(f"No papers found for query: '{query}'. Attempting to reformulate query...")
+        reformulated = await reformulate_query_for_pubmed(query)
+        if reformulated and reformulated.lower() != query.lower():
+            pmids = await search_pubmed(reformulated, max_results, date_from, date_to, journals)
+            
     if not pmids:
         logger.warning(f"No papers found for query: '{query}'")
         return []
@@ -285,3 +362,4 @@ async def ingest_papers(query: str, max_results: int = 25) -> list[Paper]:
 
     papers = await fetch_abstracts(pmids)
     return papers
+

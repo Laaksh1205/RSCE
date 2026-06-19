@@ -33,7 +33,8 @@ dependencies = [
     "networkx",
     "lxml",
     "fastapi",
-    "uvicorn"
+    "uvicorn",
+    "pymupdf"
 ]
 
 [project.optional-dependencies]

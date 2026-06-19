@@ -145,7 +145,7 @@ async def test_few_results_warning(caplog):
         assert len(papers) == 1
         # Check warning log was triggered
         warning_messages = [record.message for record in caplog.records if record.levelno == 30]  # 30 is WARNING
-        assert any(f"Only 1 papers found" in msg for msg in warning_messages)
+        assert any("Only 1 papers found" in msg for msg in warning_messages)
 
 
 def test_pubmed_semaphores_different_loops():

@@ -1,13 +1,12 @@
 import logging
 import asyncio
-import re
 import xml.etree.ElementTree as ET
 import aiohttp
 
 from src.config import settings
 from src.ingestion.pubmed import get_fetch_semaphore
 
-from typing import Optional, Any
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +20,13 @@ async def fetch_full_text(pmid: str, session: Optional[aiohttp.ClientSession] = 
     if not pmid:
         return None
 
+    if session is None:
+        async with aiohttp.ClientSession() as local_session:
+            return await _fetch_full_text_impl(pmid, local_session)
+    else:
+        return await _fetch_full_text_impl(pmid, session)
+
+async def _fetch_full_text_impl(pmid: str, session: aiohttp.ClientSession) -> str | None:
     # 1. Convert PMID to PMCID
     conv_url = "https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/"
     params = {
@@ -57,11 +63,7 @@ async def fetch_full_text(pmid: str, session: Optional[aiohttp.ClientSession] = 
         return None
 
     async with sem:
-        if session:
-            pmcid = await run_idconv(session)
-        else:
-            async with aiohttp.ClientSession() as local_session:
-                pmcid = await run_idconv(local_session)
+        pmcid = await run_idconv(session)
 
     if not pmcid:
         logger.info(f"No PMCID found for PMID {pmid}. Paper is likely not open-access.")
@@ -101,11 +103,7 @@ async def fetch_full_text(pmid: str, session: Optional[aiohttp.ClientSession] = 
         return None
 
     async with sem:
-        if session:
-            xml_content = await run_efetch(session)
-        else:
-            async with aiohttp.ClientSession() as local_session:
-                xml_content = await run_efetch(local_session)
+        xml_content = await run_efetch(session)
 
     return xml_content
 

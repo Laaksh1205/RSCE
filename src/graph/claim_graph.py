@@ -107,22 +107,38 @@ def compute_consensus_scores(graph: nx.MultiDiGraph) -> dict[str, float]:
     """
     consensus_scores = {}
     
-    # Extract all claim nodes
-    claims = [node for node, attrs in graph.nodes(data=True) if attrs.get("type") == "claim"]
-    
-    # Pre-compute all contradicting and superseding claim pairs in O(E_graph)
+    # 1. Extract all claim nodes and cache their attributes in O(V)
+    claims = []
+    claim_attrs = {}
+    for node, attrs in graph.nodes(data=True):
+        if attrs.get("type") == "claim":
+            claims.append(node)
+            claim_attrs[node] = attrs
+            
+    # 2. Pre-compute contradicting pairs, claim_to_entities, and entity_to_claims in a single pass O(E)
     contradicting_pairs = set()
+    claim_to_entities = {}
+    entity_to_claims = {}
+    
     for u, v, edge_attrs in graph.edges(data=True):
-        if edge_attrs.get("type") in ("CONTRADICTS", "SUPERSEDES"):
+        e_type = edge_attrs.get("type")
+        if e_type in ("CONTRADICTS", "SUPERSEDES"):
             contradicting_pairs.add((u, v))
             contradicting_pairs.add((v, u))
+        elif e_type == "MENTIONS":
+            # u is claim, v is entity
+            if u not in claim_to_entities:
+                claim_to_entities[u] = set()
+            claim_to_entities[u].add(v)
             
+            if v not in entity_to_claims:
+                entity_to_claims[v] = set()
+            entity_to_claims[v].add(u)
+            
+    # 3. Compute consensus scores
     for claim_node in claims:
         # Get entities mentioned by this claim
-        claim_entities = {
-            target for _, target, edge_attrs in graph.out_edges(claim_node, data=True)
-            if edge_attrs.get("type") == "MENTIONS"
-        }
+        claim_entities = claim_to_entities.get(claim_node, set())
         
         if not claim_entities:
             # If no entities are linked, score defaults to 1.0
@@ -132,30 +148,38 @@ def compute_consensus_scores(graph: nx.MultiDiGraph) -> dict[str, float]:
         # Find all other claims that share at least one entity
         related_claims = set()
         for entity in claim_entities:
-            # Predecessors of an entity node via MENTIONS edges are claims
-            for predecessor in graph.predecessors(entity):
-                if predecessor != claim_node and graph.nodes[predecessor].get("type") == "claim":
-                    related_claims.add(predecessor)
+            for u_claim in entity_to_claims.get(entity, set()):
+                if u_claim != claim_node:
+                    related_claims.add(u_claim)
                     
         if not related_claims:
             consensus_scores[claim_node] = 1.0
             continue
             
-        # Calculate Supporting (S) and Contradicting (C) claims
         s_count = 0
         c_count = 0
         
-        claim_polarity = graph.nodes[claim_node].get("polarity")
+        curr_attrs = claim_attrs[claim_node]
+        claim_polarity = curr_attrs.get("polarity")
+        claim_type = curr_attrs.get("claim_type")
+        claim_population = curr_attrs.get("population")
         
         for related in related_claims:
-            # Fast O(1) set lookup instead of O(E_uv) multi-edge scan
+            # Fast O(1) set lookup
             if (claim_node, related) in contradicting_pairs:
                 c_count += 1
             else:
-                # If they have the same polarity, count as supporting
-                related_polarity = graph.nodes[related].get("polarity")
+                rel_attrs = claim_attrs[related]
+                related_polarity = rel_attrs.get("polarity")
                 if related_polarity == claim_polarity:
-                    s_count += 1
+                    same_claim_type = rel_attrs.get("claim_type") == claim_type
+                    same_population = (
+                        bool(claim_population)
+                        and bool(rel_attrs.get("population"))
+                        and claim_population.strip().lower() == rel_attrs.get("population").strip().lower()
+                    )
+                    if same_claim_type or same_population:
+                        s_count += 1
                     
         total = s_count + c_count
         if total > 0:

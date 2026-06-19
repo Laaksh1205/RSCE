@@ -7,7 +7,11 @@ import { startAnalysis } from "../utils/api";
 export default function Home() {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [seedClaim, setSeedClaim] = useState("");
   const [maxPapers, setMaxPapers] = useState(25);
+  const [dateFrom, setDateFrom] = useState<number | "">("");
+  const [dateTo, setDateTo] = useState<number | "">("");
+  const [journalsInput, setJournalsInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,7 +23,18 @@ export default function Home() {
     setError(null);
 
     try {
-      const response = await startAnalysis(query.trim(), maxPapers);
+      const journalsList = journalsInput
+        .split(",")
+        .map((j) => j.trim())
+        .filter((j) => j.length > 0);
+      const response = await startAnalysis(
+        query.trim(),
+        maxPapers,
+        seedClaim.trim() || undefined,
+        dateFrom ? Number(dateFrom) : undefined,
+        dateTo ? Number(dateTo) : undefined,
+        journalsList.length > 0 ? journalsList : undefined
+      );
       router.push(`/results/${response.run_id}`);
     } catch (err: any) {
       console.error(err);
@@ -73,20 +88,59 @@ export default function Home() {
         <section className="text-center max-w-3xl mb-12 flex flex-col items-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-300 text-xs font-medium font-mono mb-6 animate-pulse">
             <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
-            AI-Powered Meta-Research Engine
+            PubMed Literature Synthesis & Conflict Resolution
           </div>
           
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white mb-6 leading-[1.15]">
-            Synthesize Scientific Consensus.<br />
+            Resolve Contradictions in<br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-indigo-300 to-cyan-300">
-              Detect Contradictions.
+              Medical Literature.
             </span>
           </h1>
           
-          <p className="text-zinc-400 text-base md:text-lg leading-relaxed max-w-2xl">
-            RSCE crawls PubMed Central, extracts verified scientific claims with quote-level grounding,
-            and maps conflicting clinical findings into an interactive evidence graph.
+          <p className="text-zinc-300 text-base md:text-lg leading-relaxed max-w-2xl mb-8">
+            Enter a research question to automatically crawl PubMed, extract clinical claims verified by source quotes, and map conflicting findings in an interactive consensus network.
           </p>
+
+          {/* Quick Flow Explainers */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 w-full text-left bg-zinc-900/40 border border-zinc-800/80 rounded-2xl p-6 mb-4 backdrop-blur-sm">
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2 text-purple-400 text-sm font-semibold">
+                <span className="flex items-center justify-center w-5 h-5 rounded bg-purple-500/20 text-xs font-mono">1</span>
+                Crawl PubMed
+              </div>
+              <p className="text-zinc-400 text-xs leading-relaxed">
+                Searches and retrieves the latest relevant peer-reviewed studies.
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5 border-t md:border-t-0 md:border-l border-zinc-800/80 pt-4 md:pt-0 md:pl-4">
+              <div className="flex items-center gap-2 text-indigo-400 text-sm font-semibold">
+                <span className="flex items-center justify-center w-5 h-5 rounded bg-indigo-500/20 text-xs font-mono">2</span>
+                Extract & Ground
+              </div>
+              <p className="text-zinc-400 text-xs leading-relaxed">
+                AI extracts clinical findings, verified back to exact quote anchors.
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5 border-t md:border-t-0 md:border-l border-zinc-800/80 pt-4 md:pt-0 md:pl-4">
+              <div className="flex items-center gap-2 text-cyan-400 text-sm font-semibold">
+                <span className="flex items-center justify-center w-5 h-5 rounded bg-cyan-500/20 text-xs font-mono">3</span>
+                Map Conflicts
+              </div>
+              <p className="text-zinc-400 text-xs leading-relaxed">
+                Detects contradictions using Neural NLI and LLM-based scope validation.
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5 border-t md:border-t-0 md:border-l border-zinc-800/80 pt-4 md:pt-0 md:pl-4">
+              <div className="flex items-center gap-2 text-emerald-400 text-sm font-semibold">
+                <span className="flex items-center justify-center w-5 h-5 rounded bg-emerald-500/20 text-xs font-mono">4</span>
+                Consensus Report
+              </div>
+              <p className="text-zinc-400 text-xs leading-relaxed">
+                Synthesizes a visual network and a citation-backed consensus summary.
+              </p>
+            </div>
+          </div>
         </section>
 
         {/* Search Panel Card */}
@@ -142,6 +196,116 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* Clickable Suggested Queries */}
+              <div className="flex flex-col gap-2 -mt-2">
+                <span className="text-zinc-500 text-xs font-semibold uppercase tracking-wider">Suggested Queries (Click to try)</span>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setQuery("Does metformin reduce cancer risk?"); setMaxPapers(25); }}
+                    className="px-3 py-1.5 rounded-lg bg-zinc-950/60 border border-zinc-800/80 hover:border-purple-500/50 hover:bg-purple-950/20 text-xs text-zinc-400 hover:text-purple-300 transition-all text-left"
+                  >
+                    Does metformin reduce cancer risk?
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setQuery("Does intermittent fasting improve insulin sensitivity?"); setMaxPapers(25); }}
+                    className="px-3 py-1.5 rounded-lg bg-zinc-950/60 border border-zinc-800/80 hover:border-indigo-500/50 hover:bg-indigo-950/20 text-xs text-zinc-400 hover:text-indigo-300 transition-all text-left"
+                  >
+                    Does fasting improve insulin sensitivity?
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setQuery("Do SSRIs increase suicide risk in adolescents?"); setMaxPapers(25); }}
+                    className="px-3 py-1.5 rounded-lg bg-zinc-950/60 border border-zinc-800/80 hover:border-cyan-500/50 hover:bg-cyan-950/20 text-xs text-zinc-400 hover:text-cyan-300 transition-all text-left"
+                  >
+                    Do SSRIs increase suicide risk in adolescents?
+                  </button>
+                </div>
+              </div>
+
+              {/* Optional Seed Claim Input */}
+              <div className="flex flex-col gap-1.5 border-t border-zinc-800/60 pt-5">
+                <div className="flex justify-between items-center">
+                  <label htmlFor="seed-claim-input" className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                    Optional Seed Claim (Bias Contradiction Search)
+                  </label>
+                  <span className="text-[10px] text-purple-400 font-mono">Query Bias</span>
+                </div>
+                <span className="text-zinc-500 text-xs">
+                  Provide an assertion to bias the analysis towards finding evidence that supports or refutes it.
+                </span>
+                <input
+                  type="text"
+                  id="seed-claim-input"
+                  className="block w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 placeholder-zinc-500 text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all shadow-inner font-medium mt-1"
+                  placeholder="e.g. Metformin does not reduce cancer risk in type 2 diabetes patients"
+                  value={seedClaim}
+                  onChange={(e) => setSeedClaim(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+
+              {/* Optional Search Filters (Date Range & Journals) */}
+              <div className="flex flex-col gap-3 border-t border-zinc-800/60 pt-5">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                    Optional Constraints (Filters)
+                  </label>
+                  <span className="text-[10px] text-indigo-400 font-mono">PubMed Search Constraints</span>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="date-from-input" className="text-zinc-500 text-xs block mb-1">
+                      Publication Year: From
+                    </label>
+                    <input
+                      type="number"
+                      id="date-from-input"
+                      min="1900"
+                      max="2100"
+                      className="block w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 placeholder-zinc-650 text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all font-medium"
+                      placeholder="e.g. 2015"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value ? parseInt(e.target.value) : "")}
+                      disabled={loading}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="date-to-input" className="text-zinc-500 text-xs block mb-1">
+                      Publication Year: To
+                    </label>
+                    <input
+                      type="number"
+                      id="date-to-input"
+                      min="1900"
+                      max="2100"
+                      className="block w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 placeholder-zinc-650 text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all font-medium"
+                      placeholder="e.g. 2024"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value ? parseInt(e.target.value) : "")}
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="journals-input" className="text-zinc-500 text-xs block mb-1">
+                    Restrict to Journals (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    id="journals-input"
+                    className="block w-full px-4 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 placeholder-zinc-650 text-sm focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all font-medium"
+                    placeholder="e.g. Nature, Science, New England Journal of Medicine"
+                    value={journalsInput}
+                    onChange={(e) => setJournalsInput(e.target.value)}
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
               {/* Extra Parameters */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-1 py-1 border-t border-zinc-800/60 pt-5">
                 <div className="flex flex-col gap-1 w-full sm:w-auto">
@@ -192,10 +356,10 @@ export default function Home() {
         <section className="w-full max-w-4xl mb-24">
           <div className="text-center mb-8">
             <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-widest mb-2">
-              Pre-loaded Datasets
+              Pre-loaded Sandbox Demos (Loads Instantly)
             </h2>
             <p className="text-zinc-500 text-xs sm:text-sm">
-              Instantly explore fully processed claims, graphs, and reports without consuming Gemini API tokens.
+              Click below to instantly explore fully processed claim contradiction graphs and reports without waiting for the live PubMed crawl or consuming API tokens.
             </p>
           </div>
 
@@ -208,7 +372,7 @@ export default function Home() {
               className="group text-left bg-zinc-900/30 hover:bg-zinc-900/60 border border-zinc-800 hover:border-purple-500/30 rounded-xl p-5 transition-all duration-300 active:scale-98 relative hover:shadow-lg hover:shadow-purple-500/5 cursor-pointer"
             >
               <div className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 font-mono text-[10px] font-bold">
-                15P
+                25P
               </div>
               <div className="w-10 h-10 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 mb-4 group-hover:scale-110 transition-transform">
                 {/* Pill SVG */}
@@ -235,7 +399,7 @@ export default function Home() {
               className="group text-left bg-zinc-900/30 hover:bg-zinc-900/60 border border-zinc-800 hover:border-indigo-500/30 rounded-xl p-5 transition-all duration-300 active:scale-98 relative hover:shadow-lg hover:shadow-indigo-500/5 cursor-pointer"
             >
               <div className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-mono text-[10px] font-bold">
-                12P
+                25P
               </div>
               <div className="w-10 h-10 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 group-hover:scale-110 transition-transform">
                 {/* Clock / Circadian SVG */}
@@ -262,7 +426,7 @@ export default function Home() {
               className="group text-left bg-zinc-900/30 hover:bg-zinc-900/60 border border-zinc-800 hover:border-cyan-500/30 rounded-xl p-5 transition-all duration-300 active:scale-98 relative hover:shadow-lg hover:shadow-cyan-500/5 cursor-pointer"
             >
               <div className="absolute top-4 right-4 w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 font-mono text-[10px] font-bold">
-                10P
+                25P
               </div>
               <div className="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 mb-4 group-hover:scale-110 transition-transform">
                 {/* Brain SVG */}
@@ -360,7 +524,7 @@ export default function Home() {
           <div className="bg-gradient-to-r from-zinc-900/40 to-zinc-900/10 border border-zinc-900 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-around gap-8 text-center md:text-left">
             <div>
               <div className="text-3xl md:text-4xl font-extrabold text-white font-mono bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-400">
-                70%+
+                87.3%
               </div>
               <div className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mt-1">
                 SciFact Precision
@@ -388,13 +552,13 @@ export default function Home() {
 
             <div>
               <div className="text-3xl md:text-4xl font-extrabold text-white font-mono bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-400">
-                &lt; 2 min
+                ~20 min
               </div>
               <div className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mt-1">
                 Processing Latency
               </div>
               <div className="text-zinc-500 text-xs mt-1 max-w-[12rem] mx-auto md:mx-0">
-                For a full 25-paper live ingestion pipeline run
+                For a full 25-paper run on local CPU
               </div>
             </div>
           </div>

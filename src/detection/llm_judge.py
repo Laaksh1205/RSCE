@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from pathlib import Path
-from typing import TypeVar, Type, Literal, Any
+from typing import Literal, Any, Optional, Callable, Coroutine
 
 from pydantic import BaseModel, field_validator
 from src.config import settings
@@ -87,15 +87,21 @@ async def judge_contradiction_pair(
         f"=== Claim B ===\n{format_claim(claim_b)}\n\n"
         f"Ensure you return a valid JSON object matching the required schema."
     )
-    
+
     full_prompt = f"{prompt_template}\n\n{query}"
-    
+
     try:
-        response: JudgeResponse = await llm.generate_structured(
-            prompt=full_prompt,
-            response_schema=JudgeResponse,
-            temperature=0.1
+        response: JudgeResponse = await asyncio.wait_for(
+            llm.generate_structured(
+                prompt=full_prompt,
+                response_schema=JudgeResponse,
+                temperature=0.1
+            ),
+            timeout=30.0
         )
+    except asyncio.TimeoutError:
+        logger.error(f"LLM judge call timed out for pair ({claim_a.id}, {claim_b.id})")
+        return None
     except Exception as e:
         logger.error(f"Error calling LLM judge: {e}")
         return None
@@ -138,6 +144,7 @@ async def judge_contradiction_pair(
 async def judge_batch(
     candidates: list[tuple[Claim, Claim, float]],
     llm: LLMProvider,
+    on_pair_complete: Optional[Callable[[ContradictionPair | None], Coroutine[Any, Any, None]]] = None
 ) -> list[ContradictionPair]:
     """Judge all candidates concurrently.
     Uses asyncio.Semaphore for rate limiting based on settings.llm_concurrency.
@@ -146,7 +153,10 @@ async def judge_batch(
     
     async def limit_judge(claim_a: Claim, claim_b: Claim, score: float) -> ContradictionPair | None:
         async with sem:
-            return await judge_contradiction_pair(claim_a, claim_b, llm, score)
+            res = await judge_contradiction_pair(claim_a, claim_b, llm, score)
+            if on_pair_complete:
+                await on_pair_complete(res)
+            return res
             
     tasks = [
         limit_judge(c[0], c[1], c[2])

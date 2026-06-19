@@ -7,7 +7,14 @@ export interface AnalyzeResponse {
   status: string;
 }
 
-export async function startAnalysis(query: string, maxPapers: number = 25): Promise<AnalyzeResponse> {
+export async function startAnalysis(
+  query: string,
+  maxPapers: number = 25,
+  seedClaim?: string,
+  dateFrom?: number,
+  dateTo?: number,
+  journals?: string[]
+): Promise<AnalyzeResponse> {
   const response = await fetch(`${API_BASE}/api/analyze`, {
     method: "POST",
     headers: {
@@ -16,6 +23,10 @@ export async function startAnalysis(query: string, maxPapers: number = 25): Prom
     body: JSON.stringify({
       query,
       max_papers: maxPapers,
+      seed_claim: seedClaim || undefined,
+      date_from: dateFrom || undefined,
+      date_to: dateTo || undefined,
+      journals: journals && journals.length > 0 ? journals : undefined,
     }),
   });
 

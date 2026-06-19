@@ -1,11 +1,10 @@
-import pytest
 import json
 import uuid
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from api.app import app
-from src.models.claim import Claim, ClaimType, Polarity, StudyDesign, Entity, EntityType
+from src.models.claim import Claim, ClaimType, Polarity, StudyDesign
 from src.models.paper import Paper
 from src.models.contradiction import ContradictionPair, ContradictionType
 from src.models.report import SynthesisReport

@@ -17,7 +17,7 @@ endif
 # LIMIT=0 means full dataset. Override for quick iteration: make eval-scifact LIMIT=60
 LIMIT ?= 0
 
-.PHONY: install run test eval-scifact eval-scifact-fast lint clean
+.PHONY: install run test eval-scifact eval-scifact-fast lint clean seed
 
 install:
 	python -m venv .venv
@@ -26,6 +26,7 @@ install:
 
 run:
 	$(PYTHON) -m src.main "$(QUERY)"
+
 
 test:
 	$(PYTEST) tests/ -v
@@ -39,6 +40,9 @@ eval-scifact-fast:
 
 lint:
 	$(RUFF) check src/ tests/
+
+seed:
+	$(PYTHON) scripts/seed_demo.py
 
 clean:
 	@ifeq ($(OS),Windows_NT) \

@@ -1,11 +1,9 @@
-from typing import Optional
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
 from rich.text import Text
 from rich.box import ROUNDED, DOUBLE
 from src.models.report import SynthesisReport
-from src.models.contradiction import ContradictionPair
 
 console = Console()
 
@@ -40,7 +38,7 @@ def print_cli_report(
     # 1. Header Title Panel
     title_text = Text()
     title_text.append("RESEARCH SYNTHESIS & CONTRADICTION ENGINE\n", style="bold magenta")
-    title_text.append(f"Query: ", style="bold cyan")
+    title_text.append("Query: ", style="bold cyan")
     title_text.append(query, style="italic cyan")
     
     console.print(Panel(

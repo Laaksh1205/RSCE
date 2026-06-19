@@ -1,7 +1,6 @@
 import json
 import os
 import uuid
-import pytest
 
 from src.models.claim import Claim, ClaimType, Polarity, StudyDesign
 from src.models.contradiction import ContradictionPair, ContradictionType

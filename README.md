@@ -105,6 +105,7 @@ The system was evaluated against the **SciFact** clinical evidence benchmark. Gr
 | **Quote-Anchor Rejection Rate** | $< 20.0\%$ | **14.3%** |
 | **SciFact Contradiction Precision** | $\ge 70.0\%$ | **87.3%** |
 | **SciFact Contradiction Recall** | $\ge 55.0\%$ | **45.1%** |
+| **SciFact Contradiction F1-Score** | — | **59.5%** |
 | **Citation Fidelity** | $100\%$ | **100.0%** (0 Hallucinations) |
 | **False Contradiction Rate** | $\le 15.0\%$ | **12.7%** |
 
@@ -142,8 +143,8 @@ Pipeline runs cost less than **$0.17** on average. The local execution of embedd
 ### 1. Clone and Install Backend
 ```bash
 # Clone the repository
-git clone https://github.com/laaks/rsce.git
-cd rsce
+git clone https://github.com/Laaksh1205/RSCE.git
+cd RSCE
 
 # Create virtual environment and activate
 python -m venv .venv

@@ -1,8 +1,6 @@
 import asyncio
 import logging
 import sys
-import time
-from datetime import datetime, timezone
 import typer
 from rich.console import Console
 
@@ -17,7 +15,15 @@ logging.basicConfig(level=logging.WARNING, format="%(asctime)s - %(levelname)s -
 app = typer.Typer(help="Research Synthesis & Contradiction Engine (RSCE) CLI")
 console = Console()
 
-async def run_pipeline(query: str, max_papers: int, output_json: bool):
+async def run_pipeline(
+    query: str, 
+    max_papers: int, 
+    output_json: bool, 
+    seed_claim: str | None = None,
+    date_from: int | None = None,
+    date_to: int | None = None,
+    journals: list[str] | None = None
+):
     """Orchestrate the end-to-end pipeline stages:
     Ingestion & Extraction -> Contradiction Detection -> CLI/JSON Presentation
     """
@@ -30,9 +36,16 @@ async def run_pipeline(query: str, max_papers: int, output_json: bool):
         sys.exit(1)
 
     # 1. Run full pipeline
-    with console.status(f"[bold green]Running end-to-end research synthesis pipeline for: '{query}'...[/bold green]") as status:
+    with console.status(f"[bold green]Running end-to-end research synthesis pipeline for: '{query}'...[/bold green]"):
         try:
-            state = await run_full_pipeline(query, max_papers=max_papers)
+            state = await run_full_pipeline(
+                query, 
+                max_papers=max_papers, 
+                seed_claim=seed_claim,
+                date_from=date_from,
+                date_to=date_to,
+                journals=journals
+            )
         except Exception as e:
             console.print(f"[bold red]Pipeline execution failed: {e}[/bold red]")
             sys.exit(1)
@@ -87,9 +100,13 @@ def analyze(
     query: str = typer.Argument(..., help="Research question to analyze"),
     max_papers: int = typer.Option(settings.max_papers, "--max-papers", "-n", help="Maximum papers to fetch"),
     output_json: bool = typer.Option(False, "--json", "-j", help="Export report output to a structured JSON file"),
-):
+    seed_claim: str | None = typer.Option(None, "--seed-claim", "-s", help="Optional user assertion to bias contradiction detection toward"),
+    date_from: int | None = typer.Option(None, "--date-from", help="Optional minimum publication year filter (inclusive)"),
+    date_to: int | None = typer.Option(None, "--date-to", help="Optional maximum publication year filter (inclusive)"),
+    journals: list[str] | None = typer.Option(None, "--journal", "-jnl", help="Optional journal name(s) to restrict search to (can specify multiple times)"),
+) -> None:
     """Analyze a research question for contradictory claims across papers."""
-    asyncio.run(run_pipeline(query, max_papers, output_json))
+    asyncio.run(run_pipeline(query, max_papers, output_json, seed_claim, date_from, date_to, journals))
 
 if __name__ == "__main__":
     app()

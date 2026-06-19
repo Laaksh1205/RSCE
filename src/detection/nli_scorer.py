@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Optional, Callable
 from pydantic import BaseModel
 from sentence_transformers import CrossEncoder
 from src.models.claim import Claim
@@ -19,6 +20,7 @@ class NLIScorer:
     def score_pairs(
         self,
         pairs: list[tuple[str, str]],
+        on_batch_complete: Optional[Callable[[int, int], None]] = None
     ) -> list[NLIResult]:
         """Score claim pairs for entailment/neutral/contradiction.
         Returns list of NLIResult(entailment, neutral, contradiction scores).
@@ -26,12 +28,33 @@ class NLIScorer:
         if not pairs:
             return []
 
-        # Predict returns probability scores (softmax output) by default for classifier models
-        scores = self.model.predict(pairs)
+        batch_size = 32
+        scores_list = []
+        total_pairs = len(pairs)
+        total_batches = (total_pairs + batch_size - 1) // batch_size
         
-        # Ensure scores is a 2D array even if a single pair was predicted
-        if len(pairs) == 1 and len(scores.shape) == 1:
-            scores = np.expand_dims(scores, axis=0)
+        for batch_idx in range(total_batches):
+            start_idx = batch_idx * batch_size
+            end_idx = min(start_idx + batch_size, total_pairs)
+            batch_pairs = pairs[start_idx:end_idx]
+            
+            # Predict for batch
+            batch_scores = self.model.predict(batch_pairs)
+            
+            # Ensure shape is 2D
+            if len(batch_pairs) == 1 and len(batch_scores.shape) == 1:
+                batch_scores = np.expand_dims(batch_scores, axis=0)
+                
+            scores_list.append(batch_scores)
+            
+            if on_batch_complete:
+                on_batch_complete(batch_idx + 1, total_batches)
+                
+        scores = np.vstack(scores_list)
+
+        # Convert raw logits to probabilities via Softmax
+        exp_scores = np.exp(scores - np.max(scores, axis=-1, keepdims=True))
+        scores = exp_scores / np.sum(exp_scores, axis=-1, keepdims=True)
 
         results = []
         for score in scores:
@@ -49,6 +72,7 @@ class NLIScorer:
         pairs: list[tuple[int, int, float]],  # from FAISS: (idx_a, idx_b, similarity_score)
         claims: list[Claim],
         threshold: float = 0.7,
+        on_batch_complete: Optional[Callable[[int, int], None]] = None
     ) -> list[tuple[int, int, float, float]]:
         """Run NLI on candidate pairs, return those with contradiction score >= threshold.
         Returns: list of (idx_a, idx_b, similarity_score, contradiction_score)
@@ -60,7 +84,7 @@ class NLIScorer:
         text_pairs = [(claims[idx_a].text, claims[idx_b].text) for idx_a, idx_b, _ in pairs]
         
         # Run inference
-        nli_results = self.score_pairs(text_pairs)
+        nli_results = self.score_pairs(text_pairs, on_batch_complete=on_batch_complete)
 
         filtered = []
         for (idx_a, idx_b, similarity_score), nli_res in zip(pairs, nli_results):

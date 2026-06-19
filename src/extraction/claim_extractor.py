@@ -2,7 +2,8 @@ import os
 import json
 import logging
 import asyncio
-import weakref
+import threading
+from typing import Optional, Callable, Coroutine, Any
 from src.config import settings
 from src.models.paper import Paper
 from src.models.claim import ExtractedClaim, ClaimExtractionResponse
@@ -10,16 +11,24 @@ from src.llm.base import LLMProvider
 
 logger = logging.getLogger(__name__)
 
-_section_semaphores = weakref.WeakKeyDictionary()
+_section_semaphores = {}
+_section_semaphore_lock = threading.Lock()
 
 def get_section_semaphore() -> asyncio.Semaphore:
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:
         return asyncio.Semaphore(settings.section_concurrency)
-    if loop not in _section_semaphores:
-        _section_semaphores[loop] = asyncio.Semaphore(settings.section_concurrency)
-    return _section_semaphores[loop]
+    
+    with _section_semaphore_lock:
+        # Clean up any closed loops to prevent memory leaks and loop ID collision issues
+        for old_loop in list(_section_semaphores.keys()):
+            if old_loop.is_closed():
+                del _section_semaphores[old_loop]
+
+        if loop not in _section_semaphores:
+            _section_semaphores[loop] = asyncio.Semaphore(settings.section_concurrency)
+        return _section_semaphores[loop]
 
 # Cache prompt templates to avoid repeated disk reads
 _PROMPT_TEMPLATE = None
@@ -30,22 +39,30 @@ def load_prompt_resources() -> tuple[str, str]:
     global _PROMPT_TEMPLATE, _FEW_SHOTS_DATA
     if _PROMPT_TEMPLATE is None:
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        
+
         prompt_path = os.path.join(base_dir, "prompts", "extraction_prompt.txt")
-        with open(prompt_path, "r", encoding="utf-8") as f:
-            _PROMPT_TEMPLATE = f.read()
-            
+        try:
+            with open(prompt_path, "r", encoding="utf-8") as f:
+                _PROMPT_TEMPLATE = f.read()
+        except FileNotFoundError:
+            logger.error(f"Prompt file not found: {prompt_path}")
+            _PROMPT_TEMPLATE = "Extract claims from the following text:"
+
         few_shots_path = os.path.join(base_dir, "prompts", "extraction_few_shot.json")
-        with open(few_shots_path, "r", encoding="utf-8") as f:
-            raw_shots = json.load(f)
-            shots_str = ""
-            for idx, shot in enumerate(raw_shots):
-                shots_str += f"### Example {idx+1}\n"
-                shots_str += f"Abstract: {shot['abstract']}\n"
-                formatted_claims = json.dumps({"claims": shot["claims"]}, indent=2)
-                shots_str += f"Extracted Output:\n```json\n{formatted_claims}\n```\n\n"
-            _FEW_SHOTS_DATA = shots_str
-            
+        try:
+            with open(few_shots_path, "r", encoding="utf-8") as f:
+                raw_shots = json.load(f)
+                shots_str = ""
+                for idx, shot in enumerate(raw_shots):
+                    shots_str += f"### Example {idx+1}\n"
+                    shots_str += f"Abstract: {shot['abstract']}\n"
+                    formatted_claims = json.dumps({"claims": shot["claims"]}, indent=2)
+                    shots_str += f"Extracted Output:\n```json\n{formatted_claims}\n```\n\n"
+                _FEW_SHOTS_DATA = shots_str
+        except FileNotFoundError:
+            logger.warning(f"Few-shot file not found: {few_shots_path}. Using empty few-shot examples.")
+            _FEW_SHOTS_DATA = ""
+
     return _PROMPT_TEMPLATE, _FEW_SHOTS_DATA
 
 def build_extraction_prompt(text: str, is_full_text: bool = False, section_name: str | None = None) -> str:
@@ -183,9 +200,10 @@ async def extract_claims_from_paper(
 async def extract_claims_batch(
     papers: list[Paper],
     llm: LLMProvider,
+    on_paper_complete: Optional[Callable[[Paper, list[ExtractedClaim]], Coroutine[Any, Any, None]]] = None
 ) -> dict[str, list[ExtractedClaim]]:
     """Extract claims from all papers concurrently.
-    
+
     Uses asyncio.Semaphore(settings.llm_concurrency) for rate limiting.
     Returns: {pmid: [claims]} mapping
     Logs: papers that failed extraction, papers with 0 claims
@@ -195,6 +213,8 @@ async def extract_claims_batch(
     async def process_paper(paper: Paper):
         async with sem:
             claims = await extract_claims_from_paper(paper, llm)
+            if on_paper_complete:
+                await on_paper_complete(paper, claims)
             return paper.pmid, claims
             
     tasks = [process_paper(p) for p in papers]

@@ -1,10 +1,10 @@
 import pytest
-from unittest.mock import AsyncMock, patch, MagicMock
+from unittest.mock import AsyncMock, patch
 from typer.testing import CliRunner
 import uuid
 
 from src.main import app
-from src.pipeline import PipelineState, run_full_pipeline
+from src.pipeline import PipelineState
 from src.models.paper import Paper
 from src.models.claim import Claim, ClaimType, Polarity, StudyDesign
 from src.models.report import SynthesisReport
@@ -70,5 +70,58 @@ def test_cli_analyze_command(
     assert "RESEARCH SYNTHESIS & CONTRADICTION ENGINE" in result.stdout
     assert "Pipeline Execution Statistics" in result.stdout
 
+    mock_run_pipeline.assert_called_once_with("Does metformin reduce cancer risk?", max_papers=25, seed_claim=None, date_from=None, date_to=None, journals=None)
+
+
+@patch("src.main.run_full_pipeline", new_callable=AsyncMock)
+def test_cli_analyze_command_with_seed_claim(
+    mock_run_pipeline,
+    mock_pipeline_state
+):
+    # Set up mocks
+    mock_run_pipeline.return_value = mock_pipeline_state
+
+    # Run CLI command with seed claim
+    result = runner.invoke(app, ["Does metformin reduce cancer risk?", "--seed-claim", "Metformin increases risk"])
+
+    # Assert success and outputs
+    assert result.exit_code == 0
+    assert "RESEARCH SYNTHESIS & CONTRADICTION ENGINE" in result.stdout
+    assert "Pipeline Execution Statistics" in result.stdout
+
     # Verify mocks called correctly
-    mock_run_pipeline.assert_called_once_with("Does metformin reduce cancer risk?", max_papers=25)
+    mock_run_pipeline.assert_called_once_with("Does metformin reduce cancer risk?", max_papers=25, seed_claim="Metformin increases risk", date_from=None, date_to=None, journals=None)
+
+
+@patch("src.main.run_full_pipeline", new_callable=AsyncMock)
+def test_cli_analyze_command_with_filters(
+    mock_run_pipeline,
+    mock_pipeline_state
+):
+    # Set up mocks
+    mock_run_pipeline.return_value = mock_pipeline_state
+
+    # Run CLI command with search filters
+    result = runner.invoke(app, [
+        "Does metformin reduce cancer risk?",
+        "--date-from", "2018",
+        "--date-to", "2023",
+        "--journal", "Nature",
+        "--journal", "Science"
+    ])
+
+    # Assert success and outputs
+    assert result.exit_code == 0
+    assert "RESEARCH SYNTHESIS & CONTRADICTION ENGINE" in result.stdout
+
+    # Verify mocks called correctly
+    mock_run_pipeline.assert_called_once_with(
+        "Does metformin reduce cancer risk?",
+        max_papers=25,
+        seed_claim=None,
+        date_from=2018,
+        date_to=2023,
+        journals=["Nature", "Science"]
+    )
+
+

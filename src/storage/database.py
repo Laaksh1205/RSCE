@@ -3,7 +3,7 @@ import json
 import sqlite3
 import uuid
 import logging
-from typing import Any, Optional
+from typing import Optional
 from src.config import settings
 from src.models.paper import Paper
 from src.models.claim import Claim, Entity, ClaimType, Polarity, StudyDesign
@@ -11,11 +11,22 @@ from src.models.contradiction import ContradictionPair, ContradictionType
 
 logger = logging.getLogger(__name__)
 
+def validate_pmids(pmids: list[str]) -> None:
+    """Validate that PMIDs contain only safe characters to prevent SQL injection."""
+    for pmid in pmids:
+        if not pmid or not isinstance(pmid, str):
+            raise ValueError(f"Invalid PMID: {pmid}")
+        # PMIDs should be alphanumeric with possible hyphens/underscores
+        if not pmid.replace('-', '').replace('_', '').isalnum():
+            raise ValueError(f"PMID contains invalid characters: {pmid}")
+
 def get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
     """Establish a connection to the SQLite database and enable foreign keys."""
     if db_path is None:
         db_path = settings.db_path
-    os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
+    db_dir = os.path.dirname(os.path.abspath(db_path))
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA foreign_keys = ON;")
     conn.row_factory = sqlite3.Row
@@ -86,7 +97,18 @@ def init_db(db_path: Optional[str] = None) -> None:
                 completed_at TIMESTAMP,
                 error_message TEXT,
                 pmids TEXT,                 -- JSON array of PMID strings
-                report_json TEXT            -- Serialized SynthesisReport
+                report_json TEXT,           -- Serialized SynthesisReport
+                status_message TEXT,
+                total_papers INTEGER,
+                papers_extracted INTEGER,
+                nli_pairs_total INTEGER,
+                nli_pairs_scored INTEGER,
+                judge_pairs_total INTEGER,
+                judge_pairs_scored INTEGER,
+                seed_claim TEXT,
+                date_from INTEGER,
+                date_to INTEGER,
+                journals TEXT
             );
         """)
     # Run automatic migrations for existing databases
@@ -97,6 +119,30 @@ def init_db(db_path: Optional[str] = None) -> None:
             pass
         try:
             conn.execute("ALTER TABLE pipeline_runs ADD COLUMN report_json TEXT;")
+        except sqlite3.OperationalError:
+            pass
+            
+        # New columns for progress tracking and seed claims
+        new_cols = [
+            ("status_message", "TEXT"),
+            ("total_papers", "INTEGER"),
+            ("papers_extracted", "INTEGER"),
+            ("nli_pairs_total", "INTEGER"),
+            ("nli_pairs_scored", "INTEGER"),
+            ("judge_pairs_total", "INTEGER"),
+            ("judge_pairs_scored", "INTEGER"),
+            ("seed_claim", "TEXT"),
+            ("date_from", "INTEGER"),
+            ("date_to", "INTEGER"),
+            ("journals", "TEXT")
+        ]
+        for col_name, col_type in new_cols:
+            try:
+                conn.execute(f"ALTER TABLE pipeline_runs ADD COLUMN {col_name} {col_type};")
+            except sqlite3.OperationalError:
+                pass
+        try:
+            conn.execute("ALTER TABLE claims ADD COLUMN embedding BLOB;")
         except sqlite3.OperationalError:
             pass
     conn.close()
@@ -131,12 +177,16 @@ def save_claims(claims: list[Claim], db_path: Optional[str] = None) -> None:
     conn = get_connection(db_path)
     with conn:
         for claim in claims:
+            emb_bytes = None
+            if claim.embedding is not None:
+                import numpy as np
+                emb_bytes = np.asarray(claim.embedding, dtype=np.float32).tobytes()
             conn.execute("""
                 INSERT OR REPLACE INTO claims (
                     id, paper_id, text, normalized_text, polarity, population, context, section,
                     quote_anchor, claim_type, study_design, confidence_score, is_primary_finding,
-                    sample_size, entities
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    sample_size, entities, embedding
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 str(claim.id),
                 claim.paper_id,
@@ -152,7 +202,8 @@ def save_claims(claims: list[Claim], db_path: Optional[str] = None) -> None:
                 claim.confidence_score,
                 1 if claim.is_primary_finding else 0,
                 claim.sample_size,
-                json.dumps([e.model_dump() for e in claim.entities])
+                json.dumps([e.model_dump() for e in claim.entities]),
+                emb_bytes
             ))
     conn.close()
 
@@ -197,6 +248,17 @@ def save_pipeline_run(
     error_message: Optional[str] = None,
     pmids: Optional[list[str]] = None,
     report_json: Optional[str] = None,
+    status_message: Optional[str] = None,
+    total_papers: Optional[int] = None,
+    papers_extracted: Optional[int] = None,
+    nli_pairs_total: Optional[int] = None,
+    nli_pairs_scored: Optional[int] = None,
+    judge_pairs_total: Optional[int] = None,
+    judge_pairs_scored: Optional[int] = None,
+    seed_claim: Optional[str] = None,
+    date_from: Optional[int] = None,
+    date_to: Optional[int] = None,
+    journals: Optional[list[str]] = None,
     db_path: Optional[str] = None
 ) -> None:
     """Save or update a pipeline run status."""
@@ -209,13 +271,18 @@ def save_pipeline_run(
             conn.execute("""
                 INSERT INTO pipeline_runs (
                     id, query, status, papers_fetched, claims_extracted, contradictions_found,
-                    started_at, completed_at, error_message, pmids, report_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    started_at, completed_at, error_message, pmids, report_json,
+                    status_message, total_papers, papers_extracted, nli_pairs_total, nli_pairs_scored,
+                    judge_pairs_total, judge_pairs_scored, seed_claim, date_from, date_to, journals
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 run_id, query, status, papers_fetched, claims_extracted, contradictions_found,
                 started_at, completed_at, error_message,
                 json.dumps(pmids) if pmids is not None else None,
-                report_json
+                report_json,
+                status_message, total_papers, papers_extracted, nli_pairs_total, nli_pairs_scored,
+                judge_pairs_total, judge_pairs_scored, seed_claim,
+                date_from, date_to, json.dumps(journals) if journals is not None else None
             ))
         else:
             update_fields = []
@@ -250,6 +317,39 @@ def save_pipeline_run(
             if report_json is not None:
                 update_fields.append("report_json = ?")
                 params.append(report_json)
+            if status_message is not None:
+                update_fields.append("status_message = ?")
+                params.append(status_message)
+            if total_papers is not None:
+                update_fields.append("total_papers = ?")
+                params.append(total_papers)
+            if papers_extracted is not None:
+                update_fields.append("papers_extracted = ?")
+                params.append(papers_extracted)
+            if nli_pairs_total is not None:
+                update_fields.append("nli_pairs_total = ?")
+                params.append(nli_pairs_total)
+            if nli_pairs_scored is not None:
+                update_fields.append("nli_pairs_scored = ?")
+                params.append(nli_pairs_scored)
+            if judge_pairs_total is not None:
+                update_fields.append("judge_pairs_total = ?")
+                params.append(judge_pairs_total)
+            if judge_pairs_scored is not None:
+                update_fields.append("judge_pairs_scored = ?")
+                params.append(judge_pairs_scored)
+            if seed_claim is not None:
+                update_fields.append("seed_claim = ?")
+                params.append(seed_claim)
+            if date_from is not None:
+                update_fields.append("date_from = ?")
+                params.append(date_from)
+            if date_to is not None:
+                update_fields.append("date_to = ?")
+                params.append(date_to)
+            if journals is not None:
+                update_fields.append("journals = ?")
+                params.append(json.dumps(journals))
                 
             params.append(run_id)
             query_str = f"UPDATE pipeline_runs SET {', '.join(update_fields)} WHERE id = ?"
@@ -284,16 +384,21 @@ def _row_to_claim(row: sqlite3.Row, conn: sqlite3.Connection) -> Claim:
     # Use pre-fetched authors and year if they exist in the Row (e.g. from JOIN query)
     if "authors" in row.keys() and "year" in row.keys():
         authors = json.loads(row["authors"]) if row["authors"] else []
-        year = row["year"] if row["year"] is not None else 0
+        year = row["year"] if row["year"] is not None else None
     else:
         # Query paper to resolve authors/year since they are dynamic metadata on the Claim model
         paper_row = conn.execute("SELECT authors, year FROM papers WHERE pmid = ?", (row["paper_id"],)).fetchone()
         authors = json.loads(paper_row["authors"]) if paper_row else []
-        year = paper_row["year"] if paper_row else 0
-    
+        year = paper_row["year"] if paper_row else None
+
     entities_data = json.loads(row["entities"]) if row["entities"] else []
     entities = [Entity(**e) for e in entities_data]
-    
+
+    embedding = None
+    if "embedding" in row.keys() and row["embedding"] is not None:
+        import numpy as np
+        embedding = np.frombuffer(row["embedding"], dtype=np.float32).tolist()
+
     return Claim(
         id=uuid.UUID(row["id"]),
         text=row["text"],
@@ -301,7 +406,7 @@ def _row_to_claim(row: sqlite3.Row, conn: sqlite3.Connection) -> Claim:
         paper_id=row["paper_id"],
         section=row["section"] or "Abstract",
         authors=authors,
-        year=year,
+        year=year if year is not None else 0,  # Default to 0 for Claim model compatibility
         confidence_score=row["confidence_score"],
         claim_type=ClaimType(row["claim_type"]),
         polarity=Polarity(row["polarity"]),
@@ -311,7 +416,8 @@ def _row_to_claim(row: sqlite3.Row, conn: sqlite3.Connection) -> Claim:
         quote_anchor=row["quote_anchor"],
         sample_size=row["sample_size"],
         study_design=StudyDesign(row["study_design"]),
-        is_primary_finding=bool(row["is_primary_finding"])
+        is_primary_finding=bool(row["is_primary_finding"]),
+        embedding=embedding
     )
 
 def _get_claim_with_conn(claim_id: str, conn: sqlite3.Connection) -> Optional[Claim]:
@@ -350,6 +456,7 @@ def get_claims_for_run(paper_ids: list[str], db_path: Optional[str] = None) -> l
     """Retrieve all claims associated with a list of PMIDs using a JOIN to fetch paper metadata in one query."""
     if not paper_ids:
         return []
+    validate_pmids(paper_ids)
     if db_path is None:
         db_path = settings.db_path
     conn = get_connection(db_path)
@@ -368,6 +475,7 @@ def get_papers_for_run(paper_ids: list[str], db_path: Optional[str] = None) -> l
     """Retrieve all papers associated with a list of PMIDs."""
     if not paper_ids:
         return []
+    validate_pmids(paper_ids)
     if db_path is None:
         db_path = settings.db_path
     conn = get_connection(db_path)
@@ -382,6 +490,7 @@ def get_contradictions_for_run(paper_ids: list[str], db_path: Optional[str] = No
     """Retrieve all contradiction pairs where both claims belong to the set of paper PMIDs."""
     if not paper_ids:
         return []
+    validate_pmids(paper_ids)
     if db_path is None:
         db_path = settings.db_path
     conn = get_connection(db_path)
@@ -395,7 +504,7 @@ def get_contradictions_for_run(paper_ids: list[str], db_path: Optional[str] = No
         """
         params = paper_ids + paper_ids
         rows = conn.execute(query, params).fetchall()
-        
+
         contradictions = []
         for r in rows:
             claim_a = _get_claim_with_conn(r["claim_a_id"], conn)

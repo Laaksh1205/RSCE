@@ -8,7 +8,6 @@ from typing import Optional, List
 from fastapi import APIRouter, BackgroundTasks, WebSocket, WebSocketDisconnect, HTTPException
 
 from api.schemas import AnalyzeRequest, AnalyzeResponse, StatusResponse
-from src.config import settings
 from src.pipeline import run_full_pipeline, PipelineState
 from src.storage import save_pipeline_run, get_pipeline_run
 
@@ -19,26 +18,39 @@ router = APIRouter(prefix="/api")
 class ConnectionManager:
     def __init__(self):
         self.active_connections: dict[str, List[WebSocket]] = {}
+        self._locks: dict[str, asyncio.Lock] = {}
 
     async def connect(self, run_id: str, websocket: WebSocket):
         await websocket.accept()
         if run_id not in self.active_connections:
             self.active_connections[run_id] = []
-        self.active_connections[run_id].append(websocket)
+            self._locks[run_id] = asyncio.Lock()
+        async with self._locks[run_id]:
+            self.active_connections[run_id].append(websocket)
 
     def disconnect(self, run_id: str, websocket: WebSocket):
         if run_id in self.active_connections:
-            self.active_connections[run_id].remove(websocket)
-            if not self.active_connections[run_id]:
-                del self.active_connections[run_id]
+            try:
+                self.active_connections[run_id].remove(websocket)
+                if not self.active_connections[run_id]:
+                    del self.active_connections[run_id]
+                    if run_id in self._locks:
+                        del self._locks[run_id]
+            except ValueError:
+                pass  # WebSocket already removed
 
     async def broadcast_status(self, run_id: str, data: dict):
-        if run_id in self.active_connections:
-            for connection in self.active_connections[run_id]:
-                try:
-                    await connection.send_json(data)
-                except Exception as e:
-                    logger.warning(f"Failed to send websocket broadcast to connection: {e}")
+        if run_id in self.active_connections and run_id in self._locks:
+            async with self._locks[run_id]:
+                for connection in list(self.active_connections[run_id]):
+                    try:
+                        await connection.send_json(data)
+                    except Exception as e:
+                        logger.warning(f"Failed to send websocket broadcast to connection: {e}")
+                        try:
+                            self.active_connections[run_id].remove(connection)
+                        except ValueError:
+                            pass
 
 manager = ConnectionManager()
 
@@ -53,7 +65,18 @@ async def update_run_status(
     pmids: Optional[list[str]] = None,
     report_json: Optional[str] = None,
     started_at: Optional[str] = None,
-    completed_at: Optional[str] = None
+    completed_at: Optional[str] = None,
+    status_message: Optional[str] = None,
+    total_papers: Optional[int] = None,
+    papers_extracted: Optional[int] = None,
+    nli_pairs_total: Optional[int] = None,
+    nli_pairs_scored: Optional[int] = None,
+    judge_pairs_total: Optional[int] = None,
+    judge_pairs_scored: Optional[int] = None,
+    seed_claim: Optional[str] = None,
+    date_from: Optional[int] = None,
+    date_to: Optional[int] = None,
+    journals: Optional[list[str]] = None
 ):
     """Helper to save the current run status in SQLite and broadcast it to WebSockets."""
     save_pipeline_run(
@@ -67,7 +90,18 @@ async def update_run_status(
         pmids=pmids,
         report_json=report_json,
         started_at=started_at,
-        completed_at=completed_at
+        completed_at=completed_at,
+        status_message=status_message,
+        total_papers=total_papers,
+        papers_extracted=papers_extracted,
+        nli_pairs_total=nli_pairs_total,
+        nli_pairs_scored=nli_pairs_scored,
+        judge_pairs_total=judge_pairs_total,
+        judge_pairs_scored=judge_pairs_scored,
+        seed_claim=seed_claim,
+        date_from=date_from,
+        date_to=date_to,
+        journals=journals
     )
     
     await manager.broadcast_status(run_id, {
@@ -79,10 +113,29 @@ async def update_run_status(
         "contradictions_found": contradictions_found,
         "error_message": error_message,
         "completed_at": completed_at,
+        "status_message": status_message,
+        "total_papers": total_papers,
+        "papers_extracted": papers_extracted,
+        "nli_pairs_total": nli_pairs_total,
+        "nli_pairs_scored": nli_pairs_scored,
+        "judge_pairs_total": judge_pairs_total,
+        "judge_pairs_scored": judge_pairs_scored,
+        "seed_claim": seed_claim,
+        "date_from": date_from,
+        "date_to": date_to,
+        "journals": journals,
         "timestamp": datetime.now(timezone.utc).isoformat()
     })
 
-async def run_analysis_background(run_id: str, query: str, max_papers: int):
+async def run_analysis_background(
+    run_id: str,
+    query: str,
+    max_papers: int,
+    seed_claim: Optional[str] = None,
+    date_from: Optional[int] = None,
+    date_to: Optional[int] = None,
+    journals: Optional[list[str]] = None
+):
     """The async background task executing all RSCE stages using the unified run_full_pipeline."""
     async def on_stage_complete(state: PipelineState):
         pmids = [p.pmid for p in state.papers]
@@ -91,14 +144,25 @@ async def run_analysis_background(run_id: str, query: str, max_papers: int):
             run_id=state.run_id,
             query=state.query,
             status=state.status,
-            papers_fetched=len(state.papers),
-            claims_extracted=len(state.claims),
-            contradictions_found=len(state.contradictions),
+            papers_fetched=state.papers_fetched if state.papers_fetched is not None else len(state.papers),
+            claims_extracted=state.claims_extracted if state.claims_extracted is not None else len(state.claims),
+            contradictions_found=state.contradictions_found if state.contradictions_found is not None else len(state.contradictions),
             error_message=state.error_message,
             pmids=pmids,
             report_json=state.report.model_dump_json() if state.report else None,
             started_at=state.started_at,
-            completed_at=completed_at
+            completed_at=completed_at,
+            status_message=state.status_message,
+            total_papers=state.total_papers,
+            papers_extracted=state.papers_extracted,
+            nli_pairs_total=state.nli_pairs_total,
+            nli_pairs_scored=state.nli_pairs_scored,
+            judge_pairs_total=state.judge_pairs_total,
+            judge_pairs_scored=state.judge_pairs_scored,
+            seed_claim=state.seed_claim,
+            date_from=state.date_from,
+            date_to=state.date_to,
+            journals=state.journals
         )
 
     try:
@@ -106,6 +170,10 @@ async def run_analysis_background(run_id: str, query: str, max_papers: int):
             query=query,
             max_papers=max_papers,
             run_id=run_id,
+            seed_claim=seed_claim,
+            date_from=date_from,
+            date_to=date_to,
+            journals=journals,
             on_stage_complete=on_stage_complete
         )
     except Exception as e:
@@ -115,11 +183,28 @@ async def run_analysis_background(run_id: str, query: str, max_papers: int):
 async def analyze(request: AnalyzeRequest, background_tasks: BackgroundTasks):
     """Start the research synthesis pipeline for a query in the background."""
     run_id = str(uuid.uuid4())
+    # Create the run record immediately so the results page can observe it
+    # before the background worker starts updating status.
+    save_pipeline_run(
+        run_id=run_id,
+        query=request.query,
+        status="RUNNING",
+        started_at=datetime.now(timezone.utc).isoformat(),
+        status_message="Queued for processing...",
+        seed_claim=request.seed_claim,
+        date_from=request.date_from,
+        date_to=request.date_to,
+        journals=request.journals
+    )
     background_tasks.add_task(
         run_analysis_background,
         run_id=run_id,
         query=request.query,
-        max_papers=request.max_papers
+        max_papers=request.max_papers,
+        seed_claim=request.seed_claim,
+        date_from=request.date_from,
+        date_to=request.date_to,
+        journals=request.journals
     )
     return AnalyzeResponse(
         run_id=run_id,
@@ -134,6 +219,13 @@ async def get_status(run_id: str):
     if not run:
         raise HTTPException(status_code=404, detail="Analysis run not found.")
         
+    journals_list = None
+    if run.get("journals"):
+        try:
+            journals_list = json.loads(run["journals"])
+        except Exception:
+            pass
+
     return StatusResponse(
         run_id=run["id"],
         query=run["query"],
@@ -143,7 +235,18 @@ async def get_status(run_id: str):
         contradictions_found=run["contradictions_found"],
         started_at=run["started_at"],
         completed_at=run["completed_at"],
-        error_message=run["error_message"]
+        error_message=run["error_message"],
+        status_message=run.get("status_message"),
+        total_papers=run.get("total_papers"),
+        papers_extracted=run.get("papers_extracted"),
+        nli_pairs_total=run.get("nli_pairs_total"),
+        nli_pairs_scored=run.get("nli_pairs_scored"),
+        judge_pairs_total=run.get("judge_pairs_total"),
+        judge_pairs_scored=run.get("judge_pairs_scored"),
+        seed_claim=run.get("seed_claim"),
+        date_from=run.get("date_from"),
+        date_to=run.get("date_to"),
+        journals=journals_list
     )
 
 @router.websocket("/ws/{run_id}")
@@ -153,6 +256,12 @@ async def websocket_endpoint(websocket: WebSocket, run_id: str):
     # Immediately send current state if it exists
     run = get_pipeline_run(run_id)
     if run:
+        journals_list = None
+        if run.get("journals"):
+            try:
+                journals_list = json.loads(run["journals"])
+            except Exception:
+                pass
         try:
             await websocket.send_json({
                 "run_id": run["id"],
@@ -163,6 +272,17 @@ async def websocket_endpoint(websocket: WebSocket, run_id: str):
                 "contradictions_found": run["contradictions_found"],
                 "error_message": run["error_message"],
                 "completed_at": run["completed_at"],
+                "status_message": run.get("status_message"),
+                "total_papers": run.get("total_papers"),
+                "papers_extracted": run.get("papers_extracted"),
+                "nli_pairs_total": run.get("nli_pairs_total"),
+                "nli_pairs_scored": run.get("nli_pairs_scored"),
+                "judge_pairs_total": run.get("judge_pairs_total"),
+                "judge_pairs_scored": run.get("judge_pairs_scored"),
+                "seed_claim": run.get("seed_claim"),
+                "date_from": run.get("date_from"),
+                "date_to": run.get("date_to"),
+                "journals": journals_list,
                 "timestamp": datetime.now(timezone.utc).isoformat()
             })
         except Exception:

@@ -42,6 +42,9 @@ class GeminiProvider(LLMProvider):
         else:
             api_key = settings.gemini_api_key if settings.gemini_api_key else None
             self._clients = [genai.Client(api_key=api_key)]
+        # Track cooldown expiration timestamp for each API key
+        self._cooldown_until = [0.0] * len(self._clients)
+        self._lock = asyncio.Lock()
 
     @property
     def client(self) -> genai.Client:
@@ -52,20 +55,56 @@ class GeminiProvider(LLMProvider):
         self._key_index = (self._key_index + 1) % len(self._clients)
         logger.info(f"Gemini API key rotated from index {old_idx} to {self._key_index} (total keys: {len(self._clients)}).")
 
+    async def _get_available_client(self) -> tuple[genai.Client, int]:
+        """Find the next available client that is not on cooldown.
+        
+        If all clients are in cooldown, sleeps until the earliest cooldown expires.
+        """
+        while True:
+            async with self._lock:
+                now = time.time()
+                for idx in range(len(self._clients)):
+                    search_idx = (self._key_index + idx) % len(self._clients)
+                    if now >= self._cooldown_until[search_idx]:
+                        self._key_index = search_idx
+                        return self._clients[search_idx], search_idx
+                
+                # All clients on cooldown, sleep until the earliest cools down
+                min_cooldown = min(self._cooldown_until)
+                sleep_time = min_cooldown - now + random.uniform(0.5, 2.0)
+                sleep_time = max(sleep_time, 1.0)
+            
+            logger.warning(
+                f"All Gemini keys are currently rate-limited. "
+                f"Sleeping for {sleep_time:.2f}s before trying again..."
+            )
+            await asyncio.sleep(sleep_time)
+
+    def _mark_cooldown(self, key_idx: int, delay: float):
+        """Mark a specific key index as on cooldown for the specified delay."""
+        now = time.time()
+        self._cooldown_until[key_idx] = now + delay
+        logger.warning(
+            f"Gemini API key at index {key_idx} marked as rate-limited/cooldown "
+            f"for {delay:.2f}s."
+        )
+
     async def generate_text(self, prompt: str, temperature: float = 0.3) -> str:
         config = types.GenerateContentConfig(
             temperature=temperature
         )
         
-        max_attempts = max(3, len(self._clients) * 2)
-        consecutive_rate_limits = 0
+        max_attempts = max(5, len(self._clients) * 3)
         
         for attempt in range(max_attempts):
-            # Enforce rate limit globally
+            client, key_idx = await self._get_available_client()
+            
+            # Enforce rate limit spacing globally
             rate_limit_interval = getattr(settings, "gemini_rate_limit_interval", 4.2)
             await GeminiRateLimiter.wait_if_needed(rate_limit_interval)
+            
             try:
-                response = await self.client.aio.models.generate_content(
+                response = await client.aio.models.generate_content(
                     model=self.model_name,
                     contents=prompt,
                     config=config
@@ -74,32 +113,24 @@ class GeminiProvider(LLMProvider):
             except Exception as e:
                 err_str = str(e)
                 is_rate_limit = "429" in err_str or "resource_exhausted" in err_str.lower() or "resourceexhausted" in err_str.lower()
+                
                 if attempt == max_attempts - 1:
                     logger.error(f"Gemini generate_text failed after {max_attempts} attempts: {e}")
                     raise
                 
                 if is_rate_limit:
-                    self._rotate_key()
-                    consecutive_rate_limits += 1
-                    if consecutive_rate_limits >= len(self._clients):
-                        delay_match = re.search(r"Please retry in (\d+(?:\.\d+)?)s", err_str)
-                        jitter = random.uniform(0.5, 2.0)
-                        backoff = float(delay_match.group(1)) + jitter if delay_match else (2 ** (consecutive_rate_limits - len(self._clients))) * 2 + jitter
-                        backoff = max(backoff, 5.0)
-                        logger.warning(
-                            f"Gemini generate_text hit rate limit on all keys. "
-                            f"Retrying in {backoff:.2f}s... Error: {e}"
-                        )
-                        await asyncio.sleep(backoff)
-                    else:
-                        logger.warning(
-                            f"Gemini generate_text hit rate limit. Rotated key and retrying immediately. Error: {e}"
-                        )
+                    delay_match = re.search(r"Please retry in (\d+(?:\.\d+)?)s", err_str)
+                    delay = float(delay_match.group(1)) if delay_match else 60.0
+                    
+                    async with self._lock:
+                        self._mark_cooldown(key_idx, delay)
+                    
+                    # Advance the key index so we try the next key in the pool next time
+                    self._key_index = (key_idx + 1) % len(self._clients)
                 else:
                     backoff = (2 ** attempt) * 2
                     logger.error(f"Gemini generate_text attempt {attempt+1} failed: {e}. Retrying in {backoff}s...")
                     await asyncio.sleep(backoff)
-                    consecutive_rate_limits = 0
         return ""
 
     async def generate_structured(
@@ -114,15 +145,17 @@ class GeminiProvider(LLMProvider):
             temperature=temperature
         )
         
-        max_attempts = max(3, len(self._clients) * 2)
-        consecutive_rate_limits = 0
+        max_attempts = max(5, len(self._clients) * 3)
         
         for attempt in range(max_attempts):
-            # Enforce rate limit globally
+            client, key_idx = await self._get_available_client()
+            
+            # Enforce rate limit spacing globally
             rate_limit_interval = getattr(settings, "gemini_rate_limit_interval", 4.2)
             await GeminiRateLimiter.wait_if_needed(rate_limit_interval)
+            
             try:
-                response = await self.client.aio.models.generate_content(
+                response = await client.aio.models.generate_content(
                     model=self.model_name,
                     contents=prompt,
                     config=config
@@ -134,30 +167,22 @@ class GeminiProvider(LLMProvider):
             except Exception as e:
                 err_str = str(e)
                 is_rate_limit = "429" in err_str or "resource_exhausted" in err_str.lower() or "resourceexhausted" in err_str.lower()
+                
                 if attempt == max_attempts - 1:
                     logger.error(f"Gemini generate_structured failed after {max_attempts} attempts: {e}")
                     raise
                 
                 if is_rate_limit:
-                    self._rotate_key()
-                    consecutive_rate_limits += 1
-                    if consecutive_rate_limits >= len(self._clients):
-                        delay_match = re.search(r"Please retry in (\d+(?:\.\d+)?)s", err_str)
-                        jitter = random.uniform(0.5, 2.0)
-                        backoff = float(delay_match.group(1)) + jitter if delay_match else (2 ** (consecutive_rate_limits - len(self._clients))) * 2 + jitter
-                        backoff = max(backoff, 5.0)
-                        logger.warning(
-                            f"Gemini generate_structured hit rate limit on all keys. "
-                            f"Retrying in {backoff:.2f}s... Error: {e}"
-                        )
-                        await asyncio.sleep(backoff)
-                    else:
-                        logger.warning(
-                            f"Gemini generate_structured hit rate limit. Rotated key and retrying immediately. Error: {e}"
-                        )
+                    delay_match = re.search(r"Please retry in (\d+(?:\.\d+)?)s", err_str)
+                    delay = float(delay_match.group(1)) if delay_match else 60.0
+                    
+                    async with self._lock:
+                        self._mark_cooldown(key_idx, delay)
+                    
+                    # Advance the key index so we try the next key in the pool next time
+                    self._key_index = (key_idx + 1) % len(self._clients)
                 else:
                     backoff = (2 ** attempt) * 2
                     logger.error(f"Gemini generate_structured attempt {attempt+1} failed: {e}. Retrying in {backoff}s...")
                     await asyncio.sleep(backoff)
-                    consecutive_rate_limits = 0
         raise RuntimeError("Gemini generate_structured failed execution")

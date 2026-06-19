@@ -54,6 +54,7 @@ class Claim(BaseModel):
     sample_size: int | None = None
     study_design: StudyDesign
     is_primary_finding: bool = True
+    embedding: list[float] | None = None
 
 class ExtractedClaim(BaseModel):
     """Single claim as returned by the LLM (before validation and database mapping)."""

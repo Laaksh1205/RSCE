@@ -1,6 +1,5 @@
 import pytest
 import uuid
-import networkx as nx
 
 from src.models.claim import Claim, ClaimType, Polarity, StudyDesign, Entity, EntityType
 from src.models.paper import Paper
@@ -145,3 +144,70 @@ def test_compute_consensus_scores(sample_data):
     # S = 0, C = 1 -> Score = 0.0
     assert scores[claim_1_id] == 0.0
     assert scores[claim_2_id] == 0.0
+
+
+def test_compute_consensus_scores_performance():
+    import time
+    # Generate 500 synthetic claims
+    claims = []
+    entities = [
+        Entity(text=f"Entity {i}", canonical_id=f"canonical_{i}", entity_type=EntityType.DRUG)
+        for i in range(50)
+    ]
+    for i in range(500):
+        # assign 2 random entities to each claim
+        claim_entities = [entities[i % 50], entities[(i + 1) % 50]]
+        claims.append(
+            Claim(
+                id=uuid.uuid4(),
+                text=f"Claim text {i}",
+                paper_id=f"paper_{i // 5}",  # 100 papers
+                authors=["Author"],
+                year=2020 + (i % 5),
+                confidence_score=0.9,
+                claim_type=ClaimType.CAUSAL if i % 2 == 0 else ClaimType.CORRELATIONAL,
+                polarity=Polarity.POSITIVE if i % 3 == 0 else Polarity.NEGATIVE,
+                entities=claim_entities,
+                population="humans",
+                context="general",
+                quote_anchor="anchor",
+                study_design=StudyDesign.RCT
+            )
+        )
+    
+    # Generate some contradiction pairs
+    contradictions = []
+    for i in range(100):
+        claim_a = claims[i]
+        claim_b = claims[i + 100]
+        contradictions.append(
+            ContradictionPair(
+                claim_a=claim_a,
+                claim_b=claim_b,
+                contradiction_score=0.8,
+                contradiction_type=ContradictionType.DIRECTION_REVERSAL,
+                explanation="Contradiction",
+                scope_note="",
+                is_genuine=True
+            )
+        )
+        
+    papers = [
+        Paper(pmid=f"paper_{i}", title="Title", authors=["Author"], year=2020, journal="Journal", abstract_text="Abstract")
+        for i in range(100)
+    ]
+    
+    # Build graph
+    G = build_claim_graph(claims, contradictions, papers)
+    
+    # Time the consensus calculation
+    start_time = time.perf_counter()
+    scores = compute_consensus_scores(G)
+    duration = time.perf_counter() - start_time
+    
+    # Verify score calculation and performance threshold
+    assert len(scores) == 500
+    assert duration < 0.1, f"Optimization failed: took {duration:.4f} seconds (limit: 0.1s)"
+    # Also verify that a random claim has a valid score between 0.0 and 1.0
+    for cid in scores:
+        assert 0.0 <= scores[cid] <= 1.0
