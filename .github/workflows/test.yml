@@ -32,6 +32,12 @@ jobs:
         python -m pytest tests/ -v > pytest_output.log 2>&1
         STATUS=$?
         cat pytest_output.log
+        if [ $STATUS -ne 0 ]; then
+          echo "### Pytest Failure Details" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat pytest_output.log >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        fi
         exit $STATUS
 
     - name: Upload Pytest Log
