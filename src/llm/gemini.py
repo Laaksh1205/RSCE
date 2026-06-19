@@ -37,11 +37,18 @@ class GeminiProvider(LLMProvider):
         self.model_name = model_name
         self._key_index = 0
         keys = settings.gemini_api_keys
-        if keys:
-            self._clients = [genai.Client(api_key=key) for key in keys]
-        else:
-            api_key = settings.gemini_api_key if settings.gemini_api_key else None
-            self._clients = [genai.Client(api_key=api_key)]
+        try:
+            if keys:
+                self._clients = [genai.Client(api_key=key) for key in keys]
+            else:
+                api_key = settings.gemini_api_key if settings.gemini_api_key else None
+                self._clients = [genai.Client(api_key=api_key)]
+        except Exception as e:
+            logger.warning(f"GeminiProvider: Could not initialize client: {e}. Using placeholder client.")
+            try:
+                self._clients = [genai.Client(api_key="placeholder")]
+            except Exception:
+                self._clients = []
         # Track cooldown expiration timestamp for each API key
         self._cooldown_until = [0.0] * len(self._clients)
         self._lock = asyncio.Lock()

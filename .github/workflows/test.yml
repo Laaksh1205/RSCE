@@ -23,12 +23,16 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -e ".[dev]"
+        pip install -e ".[dev]" --extra-index-url https://download.pytorch.org/whl/cpu
 
     - name: Run tests
+      env:
+        GEMINI_API_KEY: "test-key-ci"
       run: |
-        python -m pytest tests/ -v > pytest_output.log 2>&1 || (cat pytest_output.log && echo "### Pytest Failure Details" >> $GITHUB_STEP_SUMMARY && echo "\`\`\`" >> $GITHUB_STEP_SUMMARY && cat pytest_output.log >> $GITHUB_STEP_SUMMARY && echo "\`\`\`" >> $GITHUB_STEP_SUMMARY && URL=$(curl -F "file=@pytest_output.log" https://file.io | jq -r .link) && echo "::error file=tests/test_api.py,line=1::Pytest failure log: $URL" && exit 1)
+        python -m pytest tests/ -v > pytest_output.log 2>&1
+        STATUS=$?
         cat pytest_output.log
+        exit $STATUS
 
     - name: Upload Pytest Log
       if: always()
