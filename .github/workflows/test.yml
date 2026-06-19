@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout code
@@ -39,6 +41,16 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
         fi
         exit $STATUS
+
+    - name: Commit and push debug logs
+      if: failure()
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git checkout -b debug-logs || git checkout debug-logs
+        git add pytest_output.log
+        git commit -m "Upload debug log"
+        git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/Laaksh1205/RSCE.git debug-logs --force
 
     - name: Upload Pytest Log
       if: always()
