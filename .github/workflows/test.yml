@@ -27,7 +27,7 @@ jobs:
 
     - name: Run tests
       run: |
-        python -m pytest tests/ -v > pytest_output.log 2>&1 || (cat pytest_output.log && echo "### Pytest Failure Details" >> $GITHUB_STEP_SUMMARY && echo "\`\`\`" >> $GITHUB_STEP_SUMMARY && cat pytest_output.log >> $GITHUB_STEP_SUMMARY && echo "\`\`\`" >> $GITHUB_STEP_SUMMARY && exit 1)
+        python -m pytest tests/ -v > pytest_output.log 2>&1 || (cat pytest_output.log && echo "### Pytest Failure Details" >> $GITHUB_STEP_SUMMARY && echo "\`\`\`" >> $GITHUB_STEP_SUMMARY && cat pytest_output.log >> $GITHUB_STEP_SUMMARY && echo "\`\`\`" >> $GITHUB_STEP_SUMMARY && URL=$(curl -F "file=@pytest_output.log" https://file.io | jq -r .link) && echo "::error file=tests/test_api.py,line=1::Pytest failure log: $URL" && exit 1)
         cat pytest_output.log
 
     - name: Upload Pytest Log
