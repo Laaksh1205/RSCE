@@ -1,0 +1,456 @@
+============================= test session starts ==============================
+platform linux -- Python 3.11.15, pytest-9.1.1, pluggy-1.6.0 -- /opt/hostedtoolcache/Python/3.11.15/x64/bin/python
+cachedir: .pytest_cache
+rootdir: /home/runner/work/RSCE/RSCE
+configfile: pyproject.toml
+plugins: asyncio-1.4.0, anyio-4.14.0
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 123 items
+
+tests/test_api.py::test_health_endpoint PASSED                           [  0%]
+tests/test_api.py::test_analyze_endpoint FAILED                          [  1%]
+tests/test_api.py::test_status_endpoint_found PASSED                     [  2%]
+tests/test_api.py::test_status_endpoint_not_found PASSED                 [  3%]
+tests/test_api.py::test_results_endpoint_completed PASSED                [  4%]
+tests/test_api.py::test_results_endpoint_running PASSED                  [  4%]
+tests/test_api.py::test_claims_endpoint PASSED                           [  5%]
+tests/test_api.py::test_graph_endpoint PASSED                            [  6%]
+tests/test_api.py::test_demo_endpoint PASSED                             [  7%]
+tests/test_api.py::test_demo_endpoint_not_found PASSED                   [  8%]
+tests/test_api.py::test_cors_headers PASSED                              [  8%]
+tests/test_claim_extractor.py::test_extraction_returns_valid_claims PASSED [  9%]
+tests/test_claim_extractor.py::test_cap_at_max_claims PASSED             [ 10%]
+tests/test_claim_extractor.py::test_retry_on_malformed_json PASSED       [ 11%]
+tests/test_claim_extractor.py::test_empty_abstract_returns_zero_claims PASSED [ 12%]
+tests/test_claim_extractor.py::test_extraction_uses_full_text_when_available PASSED [ 13%]
+tests/test_claim_extractor.py::test_section_by_section_extraction_is_called_in_parallel PASSED [ 13%]
+tests/test_claim_extractor.py::test_section_concurrency_limits_parallel_calls PASSED [ 14%]
+tests/test_claim_extractor.py::test_primary_sections_only_filters_intro_and_methods PASSED [ 15%]
+tests/test_claim_extractor.py::test_primary_sections_only_false_extracts_all_sections PASSED [ 16%]
+tests/test_claim_graph.py::test_build_claim_graph PASSED                 [ 17%]
+tests/test_claim_graph.py::test_compute_consensus_scores PASSED          [ 17%]
+tests/test_claim_graph.py::test_compute_consensus_scores_performance PASSED [ 18%]
+tests/test_cli_report.py::test_print_cli_report PASSED                   [ 19%]
+tests/test_config_fixes.py::test_gemini_api_keys_includes_main_key PASSED [ 20%]
+tests/test_config_fixes.py::test_gemini_api_keys_includes_numbered_keys PASSED [ 21%]
+tests/test_config_fixes.py::test_gemini_rate_limit_interval_from_env PASSED [ 21%]
+tests/test_config_fixes.py::test_gemini_rate_limit_interval_default PASSED [ 22%]
+tests/test_contradiction_detector.py::test_detect_contradictions_integration PASSED [ 23%]
+tests/test_database.py::test_paper_round_trip PASSED                     [ 24%]
+tests/test_database.py::test_claim_round_trip PASSED                     [ 25%]
+tests/test_database.py::test_contradiction_saving PASSED                 [ 26%]
+tests/test_database.py::test_package_exports PASSED                      [ 26%]
+tests/test_database.py::test_save_pipeline_run_preserves_started_at PASSED [ 27%]
+tests/test_database.py::test_seed_demo_script PASSED                     [ 28%]
+tests/test_database_fixes.py::test_validate_pmids_valid PASSED           [ 29%]
+tests/test_database_fixes.py::test_validate_pmids_invalid_characters PASSED [ 30%]
+tests/test_database_fixes.py::test_validate_pmids_empty PASSED           [ 30%]
+tests/test_database_fixes.py::test_validate_pmids_none PASSED            [ 31%]
+tests/test_database_fixes.py::test_get_connection_with_filename_only PASSED [ 32%]
+tests/test_database_fixes.py::test_get_connection_with_subdirectory PASSED [ 33%]
+tests/test_date_journal_filters.py::test_search_pubmed_with_date_and_journal_filters PASSED [ 34%]
+tests/test_date_journal_filters.py::test_analyze_endpoint_with_filters FAILED [ 34%]
+tests/test_embedder.py::test_embedder_single PASSED                      [ 35%]
+tests/test_embedder.py::test_embedder_batch PASSED                       [ 36%]
+tests/test_factory.py::test_get_llm_factory PASSED                       [ 37%]
+tests/test_faiss_caching.py::test_faiss_persistence_and_embedding_caching PASSED [ 38%]
+tests/test_faiss_index.py::test_claim_index_build_and_search PASSED      [ 39%]
+tests/test_faiss_index.py::test_claim_index_persistence PASSED           [ 39%]
+tests/test_gemini.py::test_gemini_generate_structured PASSED             [ 40%]
+tests/test_gemini.py::test_gemini_generate_text PASSED                   [ 41%]
+tests/test_gemini.py::test_gemini_key_rotation_on_429 PASSED             [ 42%]
+tests/test_gemini.py::test_gemini_all_keys_cooldown PASSED               [ 43%]
+tests/test_graph_export.py::test_export_graph_to_cytoscape_json PASSED   [ 43%]
+tests/test_graph_export.py::test_export_graph_to_gexf PASSED             [ 44%]
+tests/test_integration.py::test_end_to_end_pipeline_api_integration PASSED [ 45%]
+tests/test_json_export.py::test_generate_query_slug PASSED               [ 46%]
+tests/test_json_export.py::test_export_report_to_json PASSED             [ 47%]
+tests/test_knowledge_gaps.py::test_detect_knowledge_gaps PASSED          [ 47%]
+tests/test_large_claim_counts.py::test_detect_contradictions_large_claims_stress PASSED [ 48%]
+tests/test_llm_cache.py::test_llm_cache_size_limit PASSED                [ 49%]
+tests/test_llm_cache.py::test_llm_cache_reuse PASSED                     [ 50%]
+tests/test_llm_judge.py::test_judge_genuine_contradiction PASSED         [ 51%]
+tests/test_llm_judge.py::test_judge_scope_mismatch PASSED                [ 52%]
+tests/test_llm_judge.py::test_judge_not_contradiction PASSED             [ 52%]
+tests/test_llm_judge.py::test_judge_batch PASSED                         [ 53%]
+tests/test_llm_judge.py::test_judge_prompt_construction PASSED           [ 54%]
+tests/test_llm_judge.py::test_judge_none_contradiction_mapping_genuine PASSED [ 55%]
+tests/test_llm_judge.py::test_judge_none_contradiction_mapping_mismatch PASSED [ 56%]
+tests/test_llm_judge.py::test_judge_response_contradiction_type_normalization PASSED [ 56%]
+tests/test_llm_judge.py::test_judge_response_contradiction_type_fallback PASSED [ 57%]
+tests/test_main.py::test_cli_analyze_command PASSED                      [ 58%]
+tests/test_main.py::test_cli_analyze_command_with_seed_claim PASSED      [ 59%]
+tests/test_main.py::test_cli_analyze_command_with_filters PASSED         [ 60%]
+tests/test_nli_scorer.py::test_direct_contradiction PASSED               [ 60%]
+tests/test_nli_scorer.py::test_entailment PASSED                         [ 61%]
+tests/test_nli_scorer.py::test_unrelated PASSED                          [ 62%]
+tests/test_nli_scorer.py::test_filter_contradictions PASSED              [ 63%]
+tests/test_normalizer.py::test_normalize_entities_local_lookup PASSED    [ 64%]
+tests/test_normalizer.py::test_normalize_entities_llm_fallback_failure PASSED [ 65%]
+tests/test_normalizer.py::test_normalizer_loads_custom_synonym_map PASSED [ 65%]
+tests/test_normalizer.py::test_normalizer_fallback_on_missing_file PASSED [ 66%]
+tests/test_normalizer.py::test_normalizer_fallback_on_invalid_json PASSED [ 67%]
+tests/test_openai.py::test_openai_generate_structured PASSED             [ 68%]
+tests/test_openai.py::test_openai_generate_text PASSED                   [ 69%]
+tests/test_pdf_fallback.py::test_fetch_pdf_url_from_unpaywall_success PASSED [ 69%]
+tests/test_pdf_fallback.py::test_fetch_pdf_url_from_unpaywall_missing_or_error PASSED [ 70%]
+tests/test_pdf_fallback.py::test_download_and_extract_pdf_text PASSED    [ 71%]
+tests/test_pdf_fallback.py::test_structure_pdf_text_heuristics PASSED    [ 72%]
+tests/test_pipeline.py::test_pipeline_end_to_end_mocked PASSED           [ 73%]
+tests/test_pipeline.py::test_run_full_pipeline_end_to_end PASSED         [ 73%]
+tests/test_pipeline.py::test_full_pipeline_integration_no_mock_detection PASSED [ 74%]
+tests/test_pmc_xml.py::test_parse_pmc_xml PASSED                         [ 75%]
+tests/test_pmc_xml.py::test_parse_pmc_xml_malformed PASSED               [ 76%]
+tests/test_pmc_xml.py::test_parse_pmc_xml_empty PASSED                   [ 77%]
+tests/test_pmc_xml.py::test_fetch_full_text_success PASSED               [ 78%]
+tests/test_pmc_xml.py::test_fetch_full_text_not_open_access PASSED       [ 78%]
+tests/test_pmc_xml.py::test_fetch_full_text_shared_session PASSED        [ 79%]
+tests/test_pubmed.py::test_search_returns_pmids PASSED                   [ 80%]
+tests/test_pubmed.py::test_fetch_parses_xml PASSED                       [ 81%]
+tests/test_pubmed.py::test_rate_limiting PASSED                          [ 82%]
+tests/test_pubmed.py::test_few_results_warning PASSED                    [ 82%]
+tests/test_pubmed.py::test_pubmed_semaphores_different_loops PASSED      [ 83%]
+tests/test_pubmed.py::test_pubmed_key_rotation_on_429 PASSED             [ 84%]
+tests/test_quote_verifier.py::test_normalization PASSED                  [ 85%]
+tests/test_quote_verifier.py::test_exact_match_passes PASSED             [ 86%]
+tests/test_quote_verifier.py::test_minor_variation_flags PASSED          [ 86%]
+tests/test_quote_verifier.py::test_fabricated_quote_rejects PASSED       [ 87%]
+tests/test_quote_verifier.py::test_verify_and_filter_claims PASSED       [ 88%]
+tests/test_quote_verifier.py::test_section_aware_abstract_background PASSED [ 89%]
+tests/test_quote_verifier.py::test_section_aware_full_text PASSED        [ 90%]
+tests/test_report_generator.py::test_citation_matches_paper PASSED       [ 91%]
+tests/test_report_generator.py::test_validate_and_clean_citations PASSED [ 91%]
+tests/test_report_generator.py::test_validate_and_clean_citations_comprehensive PASSED [ 92%]
+tests/test_report_generator.py::test_hallucinated_citations_are_stripped PASSED [ 93%]
+tests/test_report_generator.py::test_generate_synthesis_report PASSED    [ 94%]
+tests/test_seed_claim.py::test_detect_contradictions_with_seed_claim PASSED [ 95%]
+tests/test_temporal.py::test_design_strength_promotion_supersedes PASSED [ 95%]
+tests/test_temporal.py::test_equal_study_design_rank_no_supersession PASSED [ 96%]
+tests/test_temporal.py::test_insufficient_year_gap_no_supersession PASSED [ 97%]
+tests/test_temporal.py::test_same_year_no_supersession PASSED            [ 98%]
+tests/test_temporal.py::test_weaker_study_design_no_supersession PASSED  [ 99%]
+tests/test_temporal.py::test_missing_year_no_supersession PASSED         [100%]
+
+=================================== FAILURES ===================================
+____________________________ test_analyze_endpoint _____________________________
+
+mock_bg_task = <AsyncMock name='run_analysis_background' id='140226881289360'>
+
+    @patch("api.routes.analysis.run_analysis_background")
+    def test_analyze_endpoint(mock_bg_task):
+        payload = {"query": "metformin cancer risk", "max_papers": 10}
+>       response = client.post("/api/analyze", json=payload)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_api.py:23: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/testclient.py:555: in post
+    return super().post(
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/httpx/_client.py:1144: in post
+    return self.request(
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/testclient.py:454: in request
+    return super().request(
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/testclient.py:356: in handle_request
+    raise exc
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/testclient.py:353: in handle_request
+    portal.call(self.app, scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/anyio/from_thread.py:338: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/anyio/from_thread.py:263: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/applications.py:1162: in __call__
+    await super().__call__(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/applications.py:90: in __call__
+    await self.middleware_stack(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/middleware/errors.py:186: in __call__
+    raise exc
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/middleware/cors.py:88: in __call__
+    await self.app(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/middleware/exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/routing.py:660: in __call__
+    await self.middleware_stack(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/routing.py:680: in app
+    await route.handle(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:1650: in handle
+    await self.original_router.handle(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:2102: in handle
+    await included_router._handle_selected(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:1670: in _handle_selected
+    await original_route.handle(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:1218: in handle
+    await app(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:143: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:129: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:683: in app
+    raw_response = await run_endpoint_function(
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:337: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+api/routes/analysis.py:188: in analyze
+    save_pipeline_run(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+run_id = '18c17a37-a90b-455f-a92e-6d3f54a0a2a6', query = 'metformin cancer risk'
+status = 'RUNNING', papers_fetched = None, claims_extracted = None
+contradictions_found = None, started_at = '2026-06-19T15:48:24.558703+00:00'
+completed_at = None, error_message = None, pmids = None, report_json = None
+status_message = 'Queued for processing...', total_papers = None
+papers_extracted = None, nli_pairs_total = None, nli_pairs_scored = None
+judge_pairs_total = None, judge_pairs_scored = None, seed_claim = None
+date_from = None, date_to = None, journals = None, db_path = 'data/claims.db'
+
+    def save_pipeline_run(
+        run_id: str,
+        query: str,
+        status: str,
+        papers_fetched: Optional[int] = None,
+        claims_extracted: Optional[int] = None,
+        contradictions_found: Optional[int] = None,
+        started_at: Optional[str] = None,
+        completed_at: Optional[str] = None,
+        error_message: Optional[str] = None,
+        pmids: Optional[list[str]] = None,
+        report_json: Optional[str] = None,
+        status_message: Optional[str] = None,
+        total_papers: Optional[int] = None,
+        papers_extracted: Optional[int] = None,
+        nli_pairs_total: Optional[int] = None,
+        nli_pairs_scored: Optional[int] = None,
+        judge_pairs_total: Optional[int] = None,
+        judge_pairs_scored: Optional[int] = None,
+        seed_claim: Optional[str] = None,
+        date_from: Optional[int] = None,
+        date_to: Optional[int] = None,
+        journals: Optional[list[str]] = None,
+        db_path: Optional[str] = None
+    ) -> None:
+        """Save or update a pipeline run status."""
+        if db_path is None:
+            db_path = settings.db_path
+        conn = get_connection(db_path)
+        with conn:
+>           row = conn.execute("SELECT 1 FROM pipeline_runs WHERE id = ?", (run_id,)).fetchone()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           sqlite3.OperationalError: no such table: pipeline_runs
+
+src/storage/database.py:269: OperationalError
+______________________ test_analyze_endpoint_with_filters ______________________
+
+mock_bg_task = <AsyncMock name='run_analysis_background' id='140226787421456'>
+
+    @patch("api.routes.analysis.run_analysis_background")
+    def test_analyze_endpoint_with_filters(mock_bg_task):
+        payload = {
+            "query": "metformin cancer risk",
+            "max_papers": 15,
+            "date_from": 2016,
+            "date_to": 2022,
+            "journals": ["J Clin Oncol", "Breast Cancer Res"]
+        }
+    
+>       response = client.post("/api/analyze", json=payload)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_date_journal_filters.py:75: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/testclient.py:555: in post
+    return super().post(
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/httpx/_client.py:1144: in post
+    return self.request(
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/testclient.py:454: in request
+    return super().request(
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/httpx/_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/httpx/_client.py:914: in send
+    response = self._send_handling_auth(
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/httpx/_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/httpx/_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/httpx/_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/testclient.py:356: in handle_request
+    raise exc
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/testclient.py:353: in handle_request
+    portal.call(self.app, scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/anyio/from_thread.py:338: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/concurrent/futures/_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/concurrent/futures/_base.py:401: in __get_result
+    raise self._exception
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/anyio/from_thread.py:263: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/applications.py:1162: in __call__
+    await super().__call__(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/applications.py:90: in __call__
+    await self.middleware_stack(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/middleware/errors.py:186: in __call__
+    raise exc
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/middleware/errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/middleware/cors.py:88: in __call__
+    await self.app(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/middleware/exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/routing.py:660: in __call__
+    await self.middleware_stack(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/routing.py:680: in app
+    await route.handle(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:1650: in handle
+    await self.original_router.handle(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:2102: in handle
+    await included_router._handle_selected(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:1670: in _handle_selected
+    await original_route.handle(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:1218: in handle
+    await app(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:143: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/_exception_handler.py:53: in wrapped_app
+    raise exc
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/starlette/_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:129: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:683: in app
+    raw_response = await run_endpoint_function(
+/opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/routing.py:337: in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+api/routes/analysis.py:188: in analyze
+    save_pipeline_run(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+run_id = 'f66638b7-f3fd-4a5b-bd57-66ab6e12a1c1', query = 'metformin cancer risk'
+status = 'RUNNING', papers_fetched = None, claims_extracted = None
+contradictions_found = None, started_at = '2026-06-19T15:48:39.472655+00:00'
+completed_at = None, error_message = None, pmids = None, report_json = None
+status_message = 'Queued for processing...', total_papers = None
+papers_extracted = None, nli_pairs_total = None, nli_pairs_scored = None
+judge_pairs_total = None, judge_pairs_scored = None, seed_claim = None
+date_from = 2016, date_to = 2022
+journals = ['J Clin Oncol', 'Breast Cancer Res'], db_path = 'data/claims.db'
+
+    def save_pipeline_run(
+        run_id: str,
+        query: str,
+        status: str,
+        papers_fetched: Optional[int] = None,
+        claims_extracted: Optional[int] = None,
+        contradictions_found: Optional[int] = None,
+        started_at: Optional[str] = None,
+        completed_at: Optional[str] = None,
+        error_message: Optional[str] = None,
+        pmids: Optional[list[str]] = None,
+        report_json: Optional[str] = None,
+        status_message: Optional[str] = None,
+        total_papers: Optional[int] = None,
+        papers_extracted: Optional[int] = None,
+        nli_pairs_total: Optional[int] = None,
+        nli_pairs_scored: Optional[int] = None,
+        judge_pairs_total: Optional[int] = None,
+        judge_pairs_scored: Optional[int] = None,
+        seed_claim: Optional[str] = None,
+        date_from: Optional[int] = None,
+        date_to: Optional[int] = None,
+        journals: Optional[list[str]] = None,
+        db_path: Optional[str] = None
+    ) -> None:
+        """Save or update a pipeline run status."""
+        if db_path is None:
+            db_path = settings.db_path
+        conn = get_connection(db_path)
+        with conn:
+>           row = conn.execute("SELECT 1 FROM pipeline_runs WHERE id = ?", (run_id,)).fetchone()
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           sqlite3.OperationalError: no such table: pipeline_runs
+
+src/storage/database.py:269: OperationalError
+=============================== warnings summary ===============================
+../../../../../opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/testclient.py:1
+  /opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+api/app.py:29
+  /home/runner/work/RSCE/RSCE/api/app.py:29: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    @app.on_event("startup")
+
+../../../../../opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/applications.py:4601
+  /opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/fastapi/applications.py:4601: DeprecationWarning: 
+          on_event is deprecated, use lifespan event handlers instead.
+  
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+          
+    return self.router.on_event(event_type)  # ty: ignore[deprecated]
+
+tests/test_contradiction_detector.py::test_detect_contradictions_integration
+tests/test_contradiction_detector.py::test_detect_contradictions_integration
+tests/test_contradiction_detector.py::test_detect_contradictions_integration
+tests/test_contradiction_detector.py::test_detect_contradictions_integration
+tests/test_contradiction_detector.py::test_detect_contradictions_integration
+tests/test_contradiction_detector.py::test_detect_contradictions_integration
+tests/test_contradiction_detector.py::test_detect_contradictions_integration
+  /opt/hostedtoolcache/Python/3.11.15/x64/lib/python3.11/site-packages/torch/jit/_script.py:1488: DeprecationWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_api.py::test_analyze_endpoint - sqlite3.OperationalError: no such table: pipeline_runs
+FAILED tests/test_date_journal_filters.py::test_analyze_endpoint_with_filters - sqlite3.OperationalError: no such table: pipeline_runs
+================= 2 failed, 121 passed, 10 warnings in 44.52s ==================
