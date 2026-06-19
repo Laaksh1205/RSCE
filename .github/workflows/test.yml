@@ -27,4 +27,5 @@ jobs:
 
     - name: Run tests
       run: |
-        python -m pytest tests/ -v
+        python -m pytest tests/ -v > pytest_output.log 2>&1 || (cat pytest_output.log && echo "### Pytest Failure Details" >> $GITHUB_STEP_SUMMARY && echo "\`\`\`" >> $GITHUB_STEP_SUMMARY && cat pytest_output.log >> $GITHUB_STEP_SUMMARY && echo "\`\`\`" >> $GITHUB_STEP_SUMMARY && exit 1)
+        cat pytest_output.log
