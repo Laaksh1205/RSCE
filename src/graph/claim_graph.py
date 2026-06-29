@@ -86,13 +86,15 @@ def build_claim_graph(
             G.add_edge(claim_a_id, claim_b_id, **edge_attrs)
             G.add_edge(claim_b_id, claim_a_id, **edge_attrs)
             
-            # Add SUPERSEDES edge from newer claim to older claim if years differ
-            if pair.claim_a.year > pair.claim_b.year:
-                supersedes_attrs = {**edge_attrs, "type": "SUPERSEDES"}
-                G.add_edge(claim_a_id, claim_b_id, **supersedes_attrs)
-            elif pair.claim_b.year > pair.claim_a.year:
-                supersedes_attrs = {**edge_attrs, "type": "SUPERSEDES"}
-                G.add_edge(claim_b_id, claim_a_id, **supersedes_attrs)
+            # Add SUPERSEDES edge from newer claim to older claim if years differ.
+            # Skip when either year is unknown (0) to avoid spurious supersession edges.
+            if pair.claim_a.year > 0 and pair.claim_b.year > 0:
+                if pair.claim_a.year > pair.claim_b.year:
+                    supersedes_attrs = {**edge_attrs, "type": "SUPERSEDES"}
+                    G.add_edge(claim_a_id, claim_b_id, **supersedes_attrs)
+                elif pair.claim_b.year > pair.claim_a.year:
+                    supersedes_attrs = {**edge_attrs, "type": "SUPERSEDES"}
+                    G.add_edge(claim_b_id, claim_a_id, **supersedes_attrs)
                 
     return G
 

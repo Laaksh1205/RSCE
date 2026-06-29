@@ -406,7 +406,7 @@ def _row_to_claim(row: sqlite3.Row, conn: sqlite3.Connection) -> Claim:
         paper_id=row["paper_id"],
         section=row["section"] or "Abstract",
         authors=authors,
-        year=year if year is not None else 0,  # Default to 0 for Claim model compatibility
+        year=year if (year is not None and year > 0) else 0,  # 0 = unknown/unparseable year; excluded from temporal & supersession logic
         confidence_score=row["confidence_score"],
         claim_type=ClaimType(row["claim_type"]),
         polarity=Polarity(row["polarity"]),

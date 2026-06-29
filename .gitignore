@@ -160,4 +160,25 @@ data/scifact/
 # Scratch and Temporary files
 /scratch/
 /scratch_pmc.xml
+/summary.html
+
+# Internal planning, review, and design documents (not recruiter-facing)
+/Stuff/
+/Stuff1/
+/Stuff2/
+/ARCHITECTURE_DIAGRAM.md
+/BUGS_FOUND.md
+/implementation_plan.md
+/research_synthesis_engine_design.md
+
+# Superseded / non-representative doc images
+/docs/dashboard_mockup.png
+/docs/architecture.png
+
+# Local tooling and editor/assistant config (not part of the application)
+/.agents/
+.graphifyignore
+**/AGENTS.md
+**/CLAUDE.md
+**/graphify.md
 
